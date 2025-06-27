@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -17,8 +17,9 @@
       border-radius: 8px;
       box-shadow: 0 0 10px rgba(0,0,0,0.2);
       z-index: 1000;
+      display: none;
     }
-    .form-popup input, .form-popup textarea, .form-popup button {
+    .form-popup input, .form-popup textarea, .form-popup select, .form-popup button {
       display: block;
       margin-top: 8px;
       width: 100%;
@@ -78,6 +79,7 @@
 
     map.on('click', function(e) {
       const { lat, lng } = e.latlng;
+      document.getElementById('form').style.display = 'block';
       document.getElementById('form').dataset.lat = lat;
       document.getElementById('form').dataset.lng = lng;
 
