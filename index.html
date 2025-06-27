@@ -2,223 +2,188 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Travel Map</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet-drag-marker@2.0.0/dist/leaflet-drag-marker.min.js"></script>
   <style>
-    html, body, #map {
-      height: 100%; margin: 0; padding: 0; font-family: Arial, sans-serif;
-    }
-    #map { position: relative; }
-    .form-popup, .info-popup {
+    body, html { margin: 0; padding: 0; height: 100%; font-family: sans-serif; }
+    #map { height: 100%; }
+    .form-popup {
       position: fixed;
-      top: 50%; left: 50%;
+      top: 50%;
+      left: 50%;
       transform: translate(-50%, -50%);
       background: white;
-      padding: 15px;
-      border-radius: 10px;
-      box-shadow: 0 0 15px rgba(0,0,0,0.3);
-      z-index: 10000;
-      width: 320px;
-      max-height: 80vh;
-      overflow-y: auto;
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+      z-index: 1000;
       display: none;
+      width: 250px;
     }
-    .form-popup input[type="text"],
-    .form-popup input[type="date"],
-    .form-popup textarea,
-    .form-popup select {
-      width: 100%;
+    .form-popup input, .form-popup textarea, .form-popup select, .form-popup button {
+      display: block;
       margin-top: 8px;
-      padding: 6px;
-      box-sizing: border-box;
-      font-size: 14px;
-    }
-    .form-popup label {
-      font-weight: bold;
-      margin-top: 10px;
-      display: block;
-    }
-    .form-popup button {
-      margin-top: 12px;
-      padding: 8px;
       width: 100%;
-      cursor: pointer;
-      font-weight: bold;
-      background-color: #2E8B57;
-      color: white;
-      border: none;
-      border-radius: 5px;
-    }
-    .form-popup button.delete-btn {
-      background-color: #c0392b;
-      margin-top: 6px;
-    }
-    .form-popup button.cancel-btn {
-      background: #aaa;
-      margin-top: 6px;
-    }
-    .info-popup button.close-btn {
-      background: #aaa;
-      border: none;
-      padding: 6px 10px;
-      cursor: pointer;
-      border-radius: 5px;
-      float: right;
-      font-weight: bold;
-    }
-    .info-popup h2 {
-      margin: 0 0 10px 0;
-    }
-    .info-popup .media img, 
-    .info-popup .media video {
-      max-width: 100%;
-      margin-top: 10px;
-      border-radius: 6px;
-      display: block;
-    }
-    .info-popup .media iframe {
-      max-width: 100%;
-      margin-top: 10px;
-      border-radius: 6px;
-      display: block;
-    }
-    .signature {
-      position: fixed;
-      bottom: 10px;
-      left: 10px;
-      font-size: 13px;
-      color: rgba(0,0,0,0.5);
-      font-style: italic;
-      user-select: none;
-      z-index: 9999;
     }
     .hint {
-      position: fixed;
+      position: absolute;
       top: 10px;
       right: 10px;
-      background: rgba(255,255,255,0.85);
-      padding: 6px 12px;
+      background: rgba(255,255,255,0.8);
+      padding: 5px 10px;
+      border-radius: 8px;
+      z-index: 1000;
+      font-size: 14px;
+    }
+    .user-info {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(255,255,255,0.8);
+      padding: 10px;
       border-radius: 8px;
       font-size: 14px;
-      z-index: 9999;
-      user-select: none;
-    }
-    /* Scrollbar for popup */
-    .form-popup::-webkit-scrollbar,
-    .info-popup::-webkit-scrollbar {
-      width: 6px;
-    }
-    .form-popup::-webkit-scrollbar-thumb,
-    .info-popup::-webkit-scrollbar-thumb {
-      background: rgba(0,0,0,0.2);
-      border-radius: 3px;
+      z-index: 1000;
     }
   </style>
 </head>
 <body>
+  <div id="map"></div>
+  <div class="hint">🖱️ Кликни по карте, чтобы добавить точку</div>
+  <div class="form-popup" id="form">
+    <input type="text" id="placeName" placeholder="Название места" />
+    <input type="date" id="visitDate" />
+    <textarea id="comment" placeholder="Комментарий"></textarea>
+    <select id="markerType">
+      <option value="visited">Был здесь</option>
+      <option value="planned">Хочу поехать</option>
+    </select>
+    <input type="file" id="mediaInput" accept="image/*,video/*" multiple />
+    <button onclick="saveMarker()">💾 Сохранить</button>
+  </div>
+  <div class="user-info">
+    <b>Профиль</b><br>
+    <input type="text" id="username" placeholder="Имя" /><br>
+    <input type="number" id="userage" placeholder="Возраст" /><br>
+    <textarea id="userdesc" placeholder="О себе"></textarea><br>
+    <button onclick="saveProfile()">💾 Сохранить</button>
+  </div>
 
-<div id="map"></div>
+  <script>
+    const map = L.map('map').setView([55.75, 37.62], 4);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
 
-<div class="hint">🖱️ Клик по карте — добавить/редактировать точку</div>
+    let markers = JSON.parse(localStorage.getItem('markers')) || [];
+    let currentEditingIndex = null;
 
-<!-- Форма добавления/редактирования -->
-<div class="form-popup" id="markerForm" tabindex="0">
-  <label for="placeName">Название места *</label>
-  <input type="text" id="placeName" placeholder="Например, Москва" required />
+    function createDraggableMarker(lat, lng, color, popupText, index) {
+      const marker = L.marker([lat, lng], {
+        draggable: true,
+        icon: L.divIcon({
+          className: 'custom-marker',
+          html: `<div style="width:14px;height:14px;background:${color};border-radius:50%;border:2px solid #fff"></div>`
+        })
+      }).addTo(map);
 
-  <label for="visitDate">Дата пребывания</label>
-  <input type="date" id="visitDate" />
+      marker.on('dragend', () => {
+        const { lat, lng } = marker.getLatLng();
+        markers[index].lat = lat;
+        markers[index].lng = lng;
+        localStorage.setItem('markers', JSON.stringify(markers));
+      });
 
-  <label for="comment">Комментарий</label>
-  <textarea id="comment" rows="3" placeholder="Например, очень понравилось!"></textarea>
+      marker.on('click', () => {
+        currentEditingIndex = index;
+        const form = document.getElementById('form');
+        form.style.display = 'block';
+        form.dataset.lat = lat;
+        form.dataset.lng = lng;
+        document.getElementById('placeName').value = markers[index].name || '';
+        document.getElementById('visitDate').value = markers[index].date || '';
+        document.getElementById('comment').value = markers[index].comment || '';
+        document.getElementById('markerType').value = markers[index].type || 'visited';
+      });
 
-  <label for="markerType">Тип отметки</label>
-  <select id="markerType">
-    <option value="visited">Был здесь</option>
-    <option value="planned">Планирую поехать</option>
-  </select>
+      return marker;
+    }
 
-  <label for="mediaUrl">Ссылка на фото или видео</label>
-  <input type="text" id="mediaUrl" placeholder="URL фото или видео (YouTube, Vimeo, прямое фото)" />
+    function renderMarkers() {
+      map.eachLayer(layer => {
+        if (layer instanceof L.Marker && layer.options.draggable) {
+          map.removeLayer(layer);
+        }
+      });
+      markers.forEach((m, index) => {
+        const color = m.type === 'visited' ? 'green' : 'blue';
+        let popupText = `<b>${m.name}</b>`;
+        if (m.date) popupText += `<br>${m.date}`;
+        if (m.comment) popupText += `<br>${m.comment}`;
+        createDraggableMarker(m.lat, m.lng, color, popupText, index);
+      });
+    }
 
-  <button id="saveBtn">Сохранить</button>
-  <button id="deleteBtn" class="delete-btn" style="display:none;">Удалить</button>
-  <button id="cancelBtn" class="cancel-btn">Отмена</button>
-</div>
-
-<!-- Окно просмотра информации -->
-<div class="info-popup" id="infoPopup" tabindex="0">
-  <button class="close-btn" id="closeInfoBtn">×</button>
-  <h2 id="infoName"></h2>
-  <div><b>Дата пребывания:</b> <span id="infoDate"></span></div>
-  <div><b>Комментарий:</b> <p id="infoComment"></p></div>
-  <div><b>Тип отметки:</b> <span id="infoType"></span></div>
-  <div class="media" id="infoMedia"></div>
-  <button id="editFromInfoBtn" style="margin-top:10px; background:#2E8B57; color:#fff; border:none; border-radius:5px; padding: 8px; cursor:pointer;">Редактировать</button>
-</div>
-
-<div class="signature">Сделано с душой Мишкой ❤️</div>
-
-<script>
-  const map = L.map('map').setView([55.75, 37.62], 4);
-
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap contributors'
-  }).addTo(map);
-
-  let markers = JSON.parse(localStorage.getItem('markers')) || [];
-  let leafletMarkers = [];
-  let editingIndex = null;
-
-  const colors = { visited: 'green', planned: 'blue' };
-
-  function createMarker(data, index) {
-    const icon = L.divIcon({
-      className: 'custom-marker',
-      html: `<div style="
-        width: 18px; height: 18px;
-        background: ${colors[data.type] || 'gray'};
-        border-radius: 50%;
-        border: 2px solid white;
-        box-shadow: 0 0 5px rgba(0,0,0,0.3);
-      "></div>`,
-      iconSize: [18, 18],
-      iconAnchor: [9, 9]
+    map.on('click', function(e) {
+      const { lat, lng } = e.latlng;
+      const form = document.getElementById('form');
+      form.style.display = 'block';
+      form.dataset.lat = lat;
+      form.dataset.lng = lng;
+      currentEditingIndex = null;
+      document.getElementById('placeName').value = '';
+      document.getElementById('visitDate').value = '';
+      document.getElementById('comment').value = '';
+      document.getElementById('markerType').value = 'visited';
     });
 
-    const marker = L.marker([data.lat, data.lng], { icon, draggable: true }).addTo(map);
+    function saveMarker() {
+      const form = document.getElementById('form');
+      const lat = parseFloat(form.dataset.lat);
+      const lng = parseFloat(form.dataset.lng);
+      const name = document.getElementById('placeName').value.trim();
+      const date = document.getElementById('visitDate').value;
+      const comment = document.getElementById('comment').value.trim();
+      const type = document.getElementById('markerType').value;
 
-    marker.on('dragend', e => {
-      const pos = e.target.getLatLng();
-      markers[index].lat = pos.lat;
-      markers[index].lng = pos.lng;
-      saveMarkers();
-    });
-
-    marker.on('click', () => {
-      if (data.type === 'visited') {
-        openInfo(index);
-      } else {
-        // Для других типов сразу редактируем
-        openForm(index);
+      if (!name) {
+        alert("Пожалуйста, укажите название места.");
+        return;
       }
+
+      const markerData = { lat, lng, name, date, comment, type };
+
+      if (currentEditingIndex !== null) {
+        markers[currentEditingIndex] = markerData;
+      } else {
+        markers.push(markerData);
+      }
+
+      localStorage.setItem('markers', JSON.stringify(markers));
+      form.style.display = 'none';
+      renderMarkers();
+    }
+
+    function saveProfile() {
+      const username = document.getElementById('username').value.trim();
+      const age = document.getElementById('userage').value;
+      const desc = document.getElementById('userdesc').value.trim();
+      localStorage.setItem('profile', JSON.stringify({ username, age, desc }));
+      alert('Профиль сохранён');
+    }
+
+    window.addEventListener('load', () => {
+      const profile = JSON.parse(localStorage.getItem('profile'));
+      if (profile) {
+        document.getElementById('username').value = profile.username || '';
+        document.getElementById('userage').value = profile.age || '';
+        document.getElementById('userdesc').value = profile.desc || '';
+      }
+      renderMarkers();
     });
-
-    return marker;
-  }
-
-  function renderMarkers() {
-    leafletMarkers.forEach(m => map.removeLayer(m));
-    leafletMarkers = markers.map((m, i) => createMarker(m, i));
-  }
-
-  function saveMarkers() {
-    localStorage.setItem('markers', JSON.stringify(markers));
-  }
-
-  // Функция для вставки медиа в info popup (по URL)
-  function renderMedia(url) {
-    if (!url) return '';
+  </script>
+</body>
+</html>
