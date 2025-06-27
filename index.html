@@ -23,10 +23,21 @@
       margin-top: 8px;
       width: 100%;
     }
+    .hint {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(255,255,255,0.8);
+      padding: 5px 10px;
+      border-radius: 8px;
+      z-index: 1000;
+      font-size: 14px;
+    }
   </style>
 </head>
 <body>
   <div id="map"></div>
+  <div class="hint">🖱️ Кликни по карте, чтобы добавить точку</div>
   <div class="form-popup" id="form">
     <input type="text" id="placeName" placeholder="Название места" />
     <input type="date" id="visitDate" />
@@ -40,12 +51,13 @@
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script>
-    const map = L.map('map').setView([55.751244, 37.618423], 4); // Москва
+    const map = L.map('map').setView([55.751244, 37.618423], 4);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 
     let markers = JSON.parse(localStorage.getItem('markers')) || [];
+    let tempMarker = null;
 
     function renderMarkers() {
       markers.forEach(({ lat, lng, name, date, comment, type }) => {
@@ -55,7 +67,10 @@
           radius: 8,
           fillOpacity: 0.8
         }).addTo(map);
-        marker.bindPopup(`<b>${name}</b><br>${date}<br>${comment}`);
+        let popupText = `<b>${name}</b>`;
+        if (date) popupText += `<br>${date}`;
+        if (comment) popupText += `<br>${comment}`;
+        marker.bindPopup(popupText);
       });
     }
 
@@ -65,6 +80,13 @@
       const { lat, lng } = e.latlng;
       document.getElementById('form').dataset.lat = lat;
       document.getElementById('form').dataset.lng = lng;
+
+      if (tempMarker) map.removeLayer(tempMarker);
+      tempMarker = L.circleMarker([lat, lng], {
+        color: 'red',
+        radius: 6,
+        fillOpacity: 0.5
+      }).addTo(map);
     });
 
     function addMarker() {
@@ -74,9 +96,9 @@
       const date = document.getElementById('visitDate').value;
       const comment = document.getElementById('comment').value;
       const type = document.getElementById('markerType').value;
-      
-      if (!name || !date) {
-        alert("Пожалуйста, укажите название и дату.");
+
+      if (!name) {
+        alert("Пожалуйста, укажите название места.");
         return;
       }
 
