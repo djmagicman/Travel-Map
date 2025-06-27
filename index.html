@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -18,11 +18,13 @@
       box-shadow: 0 0 10px rgba(0,0,0,0.2);
       z-index: 1000;
       display: none;
+      width: 250px;
     }
     .form-popup input, .form-popup textarea, .form-popup select, .form-popup button {
       display: block;
       margin-top: 8px;
       width: 100%;
+      box-sizing: border-box;
     }
     .hint {
       position: absolute;
@@ -79,9 +81,12 @@
 
     map.on('click', function(e) {
       const { lat, lng } = e.latlng;
-      document.getElementById('form').style.display = 'block';
-      document.getElementById('form').dataset.lat = lat;
-      document.getElementById('form').dataset.lng = lng;
+      const form = document.getElementById('form');
+      form.style.display = 'block';
+      form.style.top = (e.containerPoint.y + 10) + 'px';
+      form.style.left = (e.containerPoint.x + 10) + 'px';
+      form.dataset.lat = lat;
+      form.dataset.lng = lng;
 
       if (tempMarker) map.removeLayer(tempMarker);
       tempMarker = L.circleMarker([lat, lng], {
@@ -92,11 +97,12 @@
     });
 
     function addMarker() {
-      const lat = parseFloat(document.getElementById('form').dataset.lat);
-      const lng = parseFloat(document.getElementById('form').dataset.lng);
-      const name = document.getElementById('placeName').value;
+      const form = document.getElementById('form');
+      const lat = parseFloat(form.dataset.lat);
+      const lng = parseFloat(form.dataset.lng);
+      const name = document.getElementById('placeName').value.trim();
       const date = document.getElementById('visitDate').value;
-      const comment = document.getElementById('comment').value;
+      const comment = document.getElementById('comment').value.trim();
       const type = document.getElementById('markerType').value;
 
       if (!name) {
@@ -107,7 +113,29 @@
       const markerData = { lat, lng, name, date, comment, type };
       markers.push(markerData);
       localStorage.setItem('markers', JSON.stringify(markers));
-      location.reload();
+
+      // Спрятать форму и очистить поля
+      form.style.display = 'none';
+      document.getElementById('placeName').value = '';
+      document.getElementById('visitDate').value = '';
+      document.getElementById('comment').value = '';
+      document.getElementById('markerType').value = 'visited';
+
+      if (tempMarker) {
+        map.removeLayer(tempMarker);
+        tempMarker = null;
+      }
+
+      // Перерисовать все метки заново
+      markers.forEach(marker => {
+        // Удалим все маркеры кроме tempMarker — чтобы не дублировать
+        map.eachLayer(layer => {
+          if (layer instanceof L.CircleMarker) {
+            map.removeLayer(layer);
+          }
+        });
+      });
+      renderMarkers();
     }
   </script>
 </body>
