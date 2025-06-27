@@ -50,4 +50,81 @@
   </div>
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <scr
+  <script>
+    const map = L.map('map').setView([55.75, 37.62], 4);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    let markers = JSON.parse(localStorage.getItem('markers')) || [];
+    let tempMarker = null;
+
+    function renderMarkers() {
+      markers.forEach(({ lat, lng, name, date, comment, type }) => {
+        const color = type === 'visited' ? 'green' : 'blue';
+        const marker = L.circleMarker([lat, lng], {
+          color,
+          radius: 8,
+          fillOpacity: 0.8
+        }).addTo(map);
+        let popupText = `<b>${name}</b>`;
+        if (date) popupText += `<br>${date}`;
+        if (comment) popupText += `<br>${comment}`;
+        marker.bindPopup(popupText);
+      });
+    }
+
+    renderMarkers();
+
+    map.on('click', function(e) {
+      const { lat, lng } = e.latlng;
+      const form = document.getElementById('form');
+      const point = map.latLngToContainerPoint(e.latlng);
+      form.style.left = `${point.x + 10}px`;
+      form.style.top = `${point.y + 10}px`;
+      form.style.display = 'block';
+      form.dataset.lat = lat;
+      form.dataset.lng = lng;
+
+      if (tempMarker) map.removeLayer(tempMarker);
+      tempMarker = L.circleMarker([lat, lng], {
+        color: 'red',
+        radius: 6,
+        fillOpacity: 0.5
+      }).addTo(map);
+    });
+
+    function addMarker() {
+      const form = document.getElementById('form');
+      const lat = parseFloat(form.dataset.lat);
+      const lng = parseFloat(form.dataset.lng);
+      const name = document.getElementById('placeName').value.trim();
+      const date = document.getElementById('visitDate').value;
+      const comment = document.getElementById('comment').value.trim();
+      const type = document.getElementById('markerType').value;
+
+      if (!name) {
+        alert("Пожалуйста, укажите название места.");
+        return;
+      }
+
+      const markerData = { lat, lng, name, date, comment, type };
+      markers.push(markerData);
+      localStorage.setItem('markers', JSON.stringify(markers));
+
+      if (tempMarker) {
+        map.removeLayer(tempMarker);
+        tempMarker = null;
+      }
+
+      form.style.display = 'none';
+      document.getElementById('placeName').value = '';
+      document.getElementById('visitDate').value = '';
+      document.getElementById('comment').value = '';
+      document.getElementById('markerType').value = 'visited';
+
+      renderMarkers();
+    }
+  </script>
+</body>
+</html>
