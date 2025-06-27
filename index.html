@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Travel Map</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    body, html { margin: 0; padding: 0; height: 100%; }
+    #map { height: 100%; }
+    .form-popup {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: white;
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+      z-index: 1000;
+    }
+    .form-popup input, .form-popup textarea, .form-popup button {
+      display: block;
+      margin-top: 8px;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div class="form-popup" id="form">
+    <input type="text" id="placeName" placeholder="Название места" />
+    <input type="date" id="visitDate" />
+    <textarea id="comment" placeholder="Комментарий"></textarea>
+    <select id="markerType">
+      <option value="visited">Был здесь</option>
+      <option value="planned">Хочу поехать</option>
+    </select>
+    <button onclick="addMarker()">Добавить точку</button>
+  </div>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    const map = L.map('map').setView([55.751244, 37.618423], 4); // Москва
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    let markers = JSON.parse(localStorage.getItem('markers')) || [];
+
+    function renderMarkers() {
+      markers.forEach(({ lat, lng, name, date, comment, type }) => {
+        const color = type === 'visited' ? 'green' : 'blue';
+        const marker = L.circleMarker([lat, lng], {
+          color: color,
+          radius: 8,
+          fillOpacity: 0.8
+        }).addTo(map);
+        marker.bindPopup(`<b>${name}</b><br>${date}<br>${comment}`);
+      });
+    }
+
+    renderMarkers();
+
+    map.on('click', function(e) {
+      const { lat, lng } = e.latlng;
+      document.getElementById('form').dataset.lat = lat;
+      document.getElementById('form').dataset.lng = lng;
+    });
+
+    function addMarker() {
+      const lat = parseFloat(document.getElementById('form').dataset.lat);
+      const lng = parseFloat(document.getElementById('form').dataset.lng);
+      const name = document.getElementById('placeName').value;
+      const date = document.getElementById('visitDate').value;
+      const comment = document.getElementById('comment').value;
+      const type = document.getElementById('markerType').value;
+      
+      if (!name || !date) {
+        alert("Пожалуйста, укажите название и дату.");
+        return;
+      }
+
+      const markerData = { lat, lng, name, date, comment, type };
+      markers.push(markerData);
+      localStorage.setItem('markers', JSON.stringify(markers));
+      location.reload();
+    }
+  </script>
+</body>
+</html>
