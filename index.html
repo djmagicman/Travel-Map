@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Travel Map</title>
+  <title>Travel Map Social</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <style>
     body, html { margin: 0; padding: 0; height: 100%; font-family: sans-serif; }
     #map { height: 100%; }
-    .form-popup {
+    .form-popup, .trip-popup {
       position: fixed;
       top: 50%;
       left: 50%;
@@ -20,63 +20,83 @@
       box-shadow: 0 0 10px rgba(0,0,0,0.2);
       z-index: 1000;
       display: none;
-      width: 250px;
+      width: 280px;
     }
-    .form-popup input, .form-popup textarea, .form-popup select, .form-popup button {
+    input, textarea, select, button {
       display: block;
       margin-top: 8px;
       width: 100%;
     }
-    .hint {
+    .hint, .user-info, .footer-note {
       position: absolute;
-      top: 10px;
+      background: rgba(255,255,255,0.8);
+      padding: 8px 10px;
+      border-radius: 8px;
+      z-index: 1000;
+      font-size: 14px;
+    }
+    .hint { top: 10px; right: 10px; }
+    .user-info { top: 10px; left: 10px; }
+    .footer-note { bottom: 10px; left: 10px; font-size: 12px; }
+    .media-preview img, .media-preview video { max-width: 100%; margin-top: 5px; }
+    .chat-box {
+      position: fixed;
+      bottom: 10px;
       right: 10px;
-      background: rgba(255,255,255,0.8);
-      padding: 5px 10px;
-      border-radius: 8px;
-      z-index: 1000;
-      font-size: 14px;
+      background: white;
+      width: 250px;
+      height: 300px;
+      border-radius: 10px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.3);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
     }
-    .user-info {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      background: rgba(255,255,255,0.8);
-      padding: 10px;
-      border-radius: 8px;
-      font-size: 14px;
-      z-index: 1000;
+    .chat-messages { flex: 1; overflow-y: auto; padding: 10px; font-size: 13px; }
+    .chat-input {
+      display: flex;
+      border-top: 1px solid #ccc;
     }
-    .media-preview img, .media-preview video {
-      max-width: 100%;
-      margin-top: 5px;
-    }
+    .chat-input input { flex: 1; border: none; padding: 8px; }
+    .chat-input button { border: none; background: #2196f3; color: white; padding: 8px; }
   </style>
 </head>
 <body>
   <div id="map"></div>
-  <div class="hint">🖱️ Кликни по карте, чтобы добавить точку</div>
+  <div class="hint">🖱️ Кликни по карте, чтобы создать поездку</div>
   <div class="form-popup" id="form">
     <input type="text" id="placeName" placeholder="Название места" />
     <input type="date" id="visitDate" />
     <textarea id="comment" placeholder="Комментарий"></textarea>
     <select id="markerType">
       <option value="visited">Был здесь</option>
-      <option value="planned">Хочу поехать</option>
+      <option value="planned">Планирую поездку</option>
     </select>
     <input type="file" id="mediaInput" accept="image/*,video/*" multiple />
     <div class="media-preview" id="mediaPreview"></div>
     <button onclick="saveMarker()">💾 Сохранить</button>
   </div>
+  <div class="trip-popup" id="tripForm">
+    <input type="text" id="tripTitle" placeholder="Название поездки" />
+    <textarea id="tripDesc" placeholder="Описание / цели поездки"></textarea>
+    <input type="date" id="tripDate" />
+    <input type="text" id="tripAuthor" placeholder="Ваше имя" />
+    <button onclick="createTrip()">🚗 Создать поездку</button>
+  </div>
   <div class="user-info">
     <b>Профиль</b><br>
-    <input type="text" id="username" placeholder="Имя" /><br>
-    <input type="number" id="userage" placeholder="Возраст" /><br>
-    <textarea id="userdesc" placeholder="О себе"></textarea><br>
+    <input type="text" id="username" placeholder="Имя" />
+    <input type="number" id="userage" placeholder="Возраст" />
+    <textarea id="userdesc" placeholder="О себе"></textarea>
     <button onclick="saveProfile()">💾 Сохранить</button>
   </div>
-  <div style="position: fixed; bottom: 10px; left: 10px; font-size: 12px; background: rgba(255,255,255,0.6); padding: 4px 10px; border-radius: 8px; z-index: 1000;">
-    Сделано с душой 🐻 Мишкой
+  <div class="footer-note">Сделано с душой 🐻 Мишкой</div>
+  <div class="chat-box">
+    <div class="chat-messages" id="chatMessages"></div>
+    <div class="chat-input">
+      <input id="chatInput" placeholder="Напишите сообщение..." />
+      <button onclick="sendMessage()">➤</button>
+    </div>
   </div>
 
   <script>
@@ -86,115 +106,76 @@
     }).addTo(map);
 
     let markers = JSON.parse(localStorage.getItem('markers')) || [];
-    let currentEditingIndex = null;
+    let trips = JSON.parse(localStorage.getItem('trips')) || [];
+    let chat = JSON.parse(localStorage.getItem('chat')) || [];
 
-    function createDraggableMarker(lat, lng, color, index) {
-      const marker = L.marker([lat, lng], {
-        draggable: true,
-        icon: L.divIcon({
-          className: 'custom-marker',
-          html: `<div style="width:14px;height:14px;background:${color};border-radius:50%;border:2px solid #fff"></div>`
-        })
-      }).addTo(map);
-
-      marker.on('dragend', () => {
-        const { lat, lng } = marker.getLatLng();
-        markers[index].lat = lat;
-        markers[index].lng = lng;
-        localStorage.setItem('markers', JSON.stringify(markers));
-      });
-
-      marker.on('click', () => {
-        const form = document.getElementById('form');
-        form.style.display = 'block';
-        currentEditingIndex = index;
-        form.dataset.lat = markers[index].lat;
-        form.dataset.lng = markers[index].lng;
-        document.getElementById('placeName').value = markers[index].name || '';
-        document.getElementById('visitDate').value = markers[index].date || '';
-        document.getElementById('comment').value = markers[index].comment || '';
-        document.getElementById('markerType').value = markers[index].type || 'visited';
-        updateMediaPreview(markers[index].media || []);
-      });
-
-      return marker;
+    function renderChat() {
+      const box = document.getElementById('chatMessages');
+      box.innerHTML = chat.map(m => `<div><b>${m.name}</b>: ${m.text}</div>`).join('');
+      box.scrollTop = box.scrollHeight;
     }
 
-    function renderMarkers() {
-      map.eachLayer(layer => {
-        if (layer instanceof L.Marker && layer.options.draggable) {
-          map.removeLayer(layer);
-        }
-      });
-      markers.forEach((m, index) => {
-        const color = m.type === 'visited' ? 'green' : 'blue';
-        createDraggableMarker(m.lat, m.lng, color, index);
-      });
+    function sendMessage() {
+      const text = document.getElementById('chatInput').value.trim();
+      const user = document.getElementById('username').value || 'Гость';
+      if (!text) return;
+      chat.push({ name: user, text });
+      localStorage.setItem('chat', JSON.stringify(chat));
+      document.getElementById('chatInput').value = '';
+      renderChat();
     }
 
-    function updateMediaPreview(files) {
-      const container = document.getElementById('mediaPreview');
-      container.innerHTML = '';
-      (files || []).forEach(file => {
-        if (file.type.startsWith('image')) {
-          const img = document.createElement('img');
-          img.src = file.url;
-          container.appendChild(img);
-        } else if (file.type.startsWith('video')) {
-          const video = document.createElement('video');
-          video.src = file.url;
-          video.controls = true;
-          container.appendChild(video);
-        }
+    function createTrip() {
+      const trip = {
+        lat: parseFloat(document.getElementById('tripForm').dataset.lat),
+        lng: parseFloat(document.getElementById('tripForm').dataset.lng),
+        title: document.getElementById('tripTitle').value,
+        desc: document.getElementById('tripDesc').value,
+        date: document.getElementById('tripDate').value,
+        author: document.getElementById('tripAuthor').value
+      };
+      trips.push(trip);
+      localStorage.setItem('trips', JSON.stringify(trips));
+      renderTrips();
+      document.getElementById('tripForm').style.display = 'none';
+    }
+
+    function renderTrips() {
+      trips.forEach(t => {
+        const marker = L.marker([t.lat, t.lng]).addTo(map);
+        marker.bindPopup(`<b>${t.title}</b><br>${t.desc}<br><i>${t.date}</i><br><b>Автор:</b> ${t.author}`);
       });
     }
 
     map.on('click', function(e) {
       const { lat, lng } = e.latlng;
-      const form = document.getElementById('form');
-      form.style.display = 'block';
-      form.dataset.lat = lat;
-      form.dataset.lng = lng;
-      currentEditingIndex = null;
-      document.getElementById('placeName').value = '';
-      document.getElementById('visitDate').value = '';
-      document.getElementById('comment').value = '';
-      document.getElementById('markerType').value = 'visited';
-      document.getElementById('mediaInput').value = '';
-      updateMediaPreview([]);
+      const tripForm = document.getElementById('tripForm');
+      tripForm.style.display = 'block';
+      tripForm.dataset.lat = lat;
+      tripForm.dataset.lng = lng;
+      tripForm.querySelectorAll('input, textarea').forEach(el => el.value = '');
     });
 
     function saveMarker() {
-      const form = document.getElementById('form');
-      const lat = parseFloat(form.dataset.lat);
-      const lng = parseFloat(form.dataset.lng);
+      const lat = parseFloat(document.getElementById('form').dataset.lat);
+      const lng = parseFloat(document.getElementById('form').dataset.lng);
       const name = document.getElementById('placeName').value.trim();
       const date = document.getElementById('visitDate').value;
       const comment = document.getElementById('comment').value.trim();
       const type = document.getElementById('markerType').value;
-
-      if (!name) {
-        alert("Пожалуйста, укажите название места.");
-        return;
-      }
-
-      const mediaInput = document.getElementById('mediaInput');
-      const files = Array.from(mediaInput.files).map(file => ({
-        url: URL.createObjectURL(file),
-        type: file.type
-      }));
-
-      const markerData = { lat, lng, name, date, comment, type, media: files };
-
-      if (currentEditingIndex !== null) {
-        markers[currentEditingIndex] = markerData;
-      } else {
-        markers.push(markerData);
-      }
-
+      const files = Array.from(document.getElementById('mediaInput').files).map(file => ({ url: URL.createObjectURL(file), type: file.type }));
+      markers.push({ lat, lng, name, date, comment, type, media: files });
       localStorage.setItem('markers', JSON.stringify(markers));
-      form.style.display = 'none';
+      document.getElementById('form').style.display = 'none';
       renderMarkers();
+    }
+
+    function renderMarkers() {
+      markers.forEach(m => {
+        const color = m.type === 'visited' ? 'green' : 'blue';
+        const marker = L.circleMarker([m.lat, m.lng], { radius: 8, color }).addTo(map);
+        marker.bindPopup(`<b>${m.name}</b><br>${m.comment}<br>${m.date}`);
+      });
     }
 
     function saveProfile() {
@@ -202,7 +183,6 @@
       const age = document.getElementById('userage').value;
       const desc = document.getElementById('userdesc').value.trim();
       localStorage.setItem('profile', JSON.stringify({ username, age, desc }));
-      alert('Профиль сохранён');
     }
 
     window.addEventListener('load', () => {
@@ -213,18 +193,8 @@
         document.getElementById('userdesc').value = profile.desc || '';
       }
       renderMarkers();
-    });
-
-    // Закрытие формы только если клик вне формы и не по маркеру
-    document.addEventListener('click', (e) => {
-      const form = document.getElementById('form');
-      if (
-        form.style.display === 'block' &&
-        !form.contains(e.target) &&
-        !e.target.closest('.leaflet-marker-icon')
-      ) {
-        form.style.display = 'none';
-      }
+      renderTrips();
+      renderChat();
     });
   </script>
 </body>
