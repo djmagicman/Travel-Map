@@ -75,6 +75,9 @@
     <textarea id="userdesc" placeholder="О себе"></textarea><br>
     <button onclick="saveProfile()">💾 Сохранить</button>
   </div>
+  <div style="position: fixed; bottom: 10px; left: 10px; font-size: 12px; background: rgba(255,255,255,0.6); padding: 4px 10px; border-radius: 8px; z-index: 1000;">
+    Сделано с душой 🐻 Мишкой
+  </div>
 
   <script>
     const map = L.map('map').setView([55.75, 37.62], 4);
@@ -212,10 +215,14 @@
       renderMarkers();
     });
 
-    // Закрытие формы по клику вне её
+    // Закрытие формы только если клик вне формы и не по маркеру
     document.addEventListener('click', (e) => {
       const form = document.getElementById('form');
-      if (form.style.display === 'block' && !form.contains(e.target)) {
+      if (
+        form.style.display === 'block' &&
+        !form.contains(e.target) &&
+        !e.target.closest('.leaflet-marker-icon')
+      ) {
         form.style.display = 'none';
       }
     });
