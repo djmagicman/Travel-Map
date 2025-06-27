@@ -5,11 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Travel Map</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-drag-marker@2.0.0/dist/leaflet-drag-marker.min.js"></script>
   <style>
-    body, html { margin: 0; padding: 0; height: 100%; }
+    body, html { margin: 0; padding: 0; height: 100%; font-family: sans-serif; }
     #map { height: 100%; }
     .form-popup {
-      position: absolute;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
       background: white;
       padding: 10px;
       border-radius: 8px;
@@ -33,6 +38,16 @@
       z-index: 1000;
       font-size: 14px;
     }
+    .user-info {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(255,255,255,0.8);
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 14px;
+      z-index: 1000;
+    }
   </style>
 </head>
 <body>
@@ -48,8 +63,14 @@
     </select>
     <button onclick="addMarker()">Добавить точку</button>
   </div>
+  <div class="user-info">
+    <b>Профиль</b><br>
+    <input type="text" id="username" placeholder="Имя" /><br>
+    <input type="number" id="userage" placeholder="Возраст" /><br>
+    <textarea id="userdesc" placeholder="О себе"></textarea><br>
+    <button onclick="saveProfile()">💾 Сохранить</button>
+  </div>
 
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script>
     const map = L.map('map').setView([55.75, 37.62], 4);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -57,20 +78,37 @@
     }).addTo(map);
 
     let markers = JSON.parse(localStorage.getItem('markers')) || [];
-    let tempMarker = null;
+
+    function createDraggableMarker(lat, lng, color, popupText, index) {
+      const marker = L.marker([lat, lng], {
+        draggable: true,
+        icon: L.divIcon({
+          className: 'custom-marker',
+          html: `<div style="width:14px;height:14px;background:${color};border-radius:50%;border:2px solid #fff"></div>`
+        })
+      }).addTo(map);
+      if (popupText) marker.bindPopup(popupText);
+      marker.on('dragend', () => {
+        const { lat, lng } = marker.getLatLng();
+        markers[index].lat = lat;
+        markers[index].lng = lng;
+        localStorage.setItem('markers', JSON.stringify(markers));
+      });
+      return marker;
+    }
 
     function renderMarkers() {
-      markers.forEach(({ lat, lng, name, date, comment, type }) => {
-        const color = type === 'visited' ? 'green' : 'blue';
-        const marker = L.circleMarker([lat, lng], {
-          color,
-          radius: 8,
-          fillOpacity: 0.8
-        }).addTo(map);
-        let popupText = `<b>${name}</b>`;
-        if (date) popupText += `<br>${date}`;
-        if (comment) popupText += `<br>${comment}`;
-        marker.bindPopup(popupText);
+      map.eachLayer(layer => {
+        if (layer instanceof L.Marker && layer.options.draggable) {
+          map.removeLayer(layer);
+        }
+      });
+      markers.forEach((m, index) => {
+        const color = m.type === 'visited' ? 'green' : 'blue';
+        let popupText = `<b>${m.name}</b>`;
+        if (m.date) popupText += `<br>${m.date}`;
+        if (m.comment) popupText += `<br>${m.comment}`;
+        createDraggableMarker(m.lat, m.lng, color, popupText, index);
       });
     }
 
@@ -79,19 +117,9 @@
     map.on('click', function(e) {
       const { lat, lng } = e.latlng;
       const form = document.getElementById('form');
-      const point = map.latLngToContainerPoint(e.latlng);
-      form.style.left = `${point.x + 10}px`;
-      form.style.top = `${point.y + 10}px`;
       form.style.display = 'block';
       form.dataset.lat = lat;
       form.dataset.lng = lng;
-
-      if (tempMarker) map.removeLayer(tempMarker);
-      tempMarker = L.circleMarker([lat, lng], {
-        color: 'red',
-        radius: 6,
-        fillOpacity: 0.5
-      }).addTo(map);
     });
 
     function addMarker() {
@@ -112,12 +140,8 @@
       markers.push(markerData);
       localStorage.setItem('markers', JSON.stringify(markers));
 
-      if (tempMarker) {
-        map.removeLayer(tempMarker);
-        tempMarker = null;
-      }
-
       form.style.display = 'none';
+      form.reset?.();
       document.getElementById('placeName').value = '';
       document.getElementById('visitDate').value = '';
       document.getElementById('comment').value = '';
@@ -125,6 +149,24 @@
 
       renderMarkers();
     }
+
+    function saveProfile() {
+      const username = document.getElementById('username').value.trim();
+      const age = document.getElementById('userage').value;
+      const desc = document.getElementById('userdesc').value.trim();
+      localStorage.setItem('profile', JSON.stringify({ username, age, desc }));
+      alert('Профиль сохранён');
+    }
+
+    // Загрузка профиля при старте
+    window.addEventListener('load', () => {
+      const profile = JSON.parse(localStorage.getItem('profile'));
+      if (profile) {
+        document.getElementById('username').value = profile.username || '';
+        document.getElementById('userage').value = profile.age || '';
+        document.getElementById('userdesc').value = profile.desc || '';
+      }
+    });
   </script>
 </body>
 </html>
