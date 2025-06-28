@@ -127,8 +127,8 @@
       }
     });
 
-    map.on('click', function(e) {
-      if (!document.getElementById('form').contains(e.originalEvent.target)) {
+    document.addEventListener('click', function(e) {
+      if (!document.getElementById('form').contains(e.target) && !e.target.closest('.leaflet-container')) {
         document.getElementById('form').style.display = 'none';
       }
     });
@@ -150,7 +150,7 @@
     function renderMarkers() {
       markers.forEach(m => {
         const color = m.type === 'visited' ? 'green' : 'blue';
-        const marker = L.circleMarker([m.lat, m.lng], { radius: 8, color, draggable: true }).addTo(map);
+        const marker = L.circleMarker([m.lat, m.lng], { radius: 8, color }).addTo(map);
         const mediaHtml = (m.media || []).map(f => f.type.startsWith('image') ? `<img src="${f.url}" style="max-width:100px"/>` : `<video src="${f.url}" controls style="max-width:100px"></video>`).join('');
         marker.bindPopup(`<b>${m.name}</b><br>${m.comment}<br>${m.date}<br>${mediaHtml}`);
       });
