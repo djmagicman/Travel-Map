@@ -57,7 +57,7 @@
     height: 100vh;
     width: calc(100vw - 240px);
   }
-  .form-popup, .trip-popup, .profile-popup, .friends-popup, .route-popup {
+  .form-popup, .trip-popup, .profile-popup, .friends-popup, .route-popup, .auth-popup {
     position: fixed;
     top: 10px;
     left: 50%;
@@ -107,6 +107,15 @@
 </div>
 
 <div id="map"></div>
+
+<!-- Авторизация -->
+<div id="authPopup" class="auth-popup">
+  <h3>Вход или регистрация</h3>
+  <input type="email" id="authEmail" placeholder="Email" />
+  <input type="password" id="authPassword" placeholder="Пароль" />
+  <button onclick="signIn()">Войти</button>
+  <button onclick="signUp()">Зарегистрироваться</button>
+</div>
 
 <!-- Всплывающее окно для путешествий -->
 <div id="routePopup" class="route-popup">
@@ -170,7 +179,74 @@
 </div>
 
 <script>
-  // Здесь будут добавлены скрипты для карты, сохранения точек, профиля, друзей и маршрутов.
+  const firebaseConfig = {
+    apiKey: "AIzaSyB0c7llONI831LKFmqTIH6393ZD4ZjBOZY",
+    authDomain: "travel-map-f3677.firebaseapp.com",
+    projectId: "travel-map-f3677",
+    storageBucket: "travel-map-f3677.appspot.com",
+    messagingSenderId: "692883514599",
+    appId: "1:692883514599:web:0b7a71587433e67a85ae42",
+    measurementId: "G-M8L8K1DL29"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+  const storage = firebase.storage();
+
+  let currentUser = null;
+
+  function signIn() {
+    const email = document.getElementById('authEmail').value;
+    const password = document.getElementById('authPassword').value;
+    auth.signInWithEmailAndPassword(email, password).catch(e => alert('Ошибка входа: ' + e.message));
+  }
+
+  function signUp() {
+    const email = document.getElementById('authEmail').value;
+    const password = document.getElementById('authPassword').value;
+    auth.createUserWithEmailAndPassword(email, password).catch(e => alert('Ошибка регистрации: ' + e.message));
+  }
+
+  auth.onAuthStateChanged(user => {
+    if (user) {
+      currentUser = user;
+      document.getElementById('welcomeUser').textContent = `Здравствуйте, ${user.email}`;
+      document.getElementById('authPopup').style.display = 'none';
+      initMap();
+    } else {
+      document.getElementById('authPopup').style.display = 'block';
+    }
+  });
+
+  let map;
+  function initMap() {
+    map = L.map('map').setView([55.751244, 37.618423], 5);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18,
+    }).addTo(map);
+
+    map.on('click', onMapClick);
+  }
+
+  function onMapClick(e) {
+    document.getElementById('markerPopup').style.display = 'block';
+    document.getElementById('coordDisplay').textContent = `Координаты: ${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`;
+    fetchAddress(e.latlng.lat, e.latlng.lng);
+  }
+
+  async function fetchAddress(lat, lng) {
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`);
+      const data = await res.json();
+      document.getElementById('addressDisplay').textContent = data.display_name || '';
+    } catch (e) {
+      document.getElementById('addressDisplay').textContent = '';
+    }
+  }
+
+  function closePopup(id) {
+    document.getElementById(id).style.display = 'none';
+  }
 </script>
 
 </body>
