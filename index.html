@@ -3,165 +3,63 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Travel Map Social — простой вход и карта</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<title>Простой вход</title>
 <style>
-  body,html{margin:0;padding:0;height:100%;font-family:sans-serif;}
-  #map{height:100%;display:none;}
-  .auth-container, .profile-container, .friends-container {
-    max-width:320px;
-    margin:20px auto;
-    background:#fff;
-    padding:15px;
-    border-radius:8px;
-    box-shadow:0 0 10px rgba(0,0,0,0.2);
-  }
-  h2 {text-align:center;}
-  input, button, textarea, select {width:100%; margin-top:10px; padding:8px; font-size:16px; box-sizing:border-box;}
-  button {cursor:pointer;}
-  .link {color:#0066cc; cursor:pointer; text-align:center; margin-top:10px; display:block;}
-  #logoutBtn {margin-top:15px; background:#f44336; color:#fff; border:none;}
-  #profile, #friendsList {margin-top:15px;}
-  .friend {padding:6px; border-bottom:1px solid #ddd; cursor:pointer;}
-  .friend:hover {background:#eef;}
-  #tripForm {
-    position: fixed;
-    top: 10px; left: 10px;
-    background: white;
-    padding: 10px;
-    border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0,0,0,0.3);
-    width: 280px;
-    display: none;
-    z-index: 1000;
-  }
-  #tripForm input, #tripForm textarea, #tripForm select, #tripForm button {
-    margin-top: 8px;
-    width: 100%;
-  }
-  .marker {
-    border-radius: 50%;
-    width: 16px;
-    height: 16px;
-    border: 2px solid white;
-    box-shadow: 0 0 4px black;
-  }
-  .visited { background: green; }
-  .planned { background: red; }
-  #friendsSection {
-    max-width: 320px;
-    margin: 10px auto;
-    background: #fff;
-    padding: 10px;
-    border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0,0,0,0.2);
-    display:none;
-  }
+  body { font-family: Arial, sans-serif; padding: 20px; }
+  #authContainer, #profileContainer { max-width: 300px; margin: auto; }
+  #profileContainer { display: none; }
+  input, button { display: block; width: 100%; margin: 10px 0; padding: 10px; }
 </style>
 </head>
 <body>
 
-<!-- Авторизация -->
-<div class="auth-container" id="authContainer">
+<div id="authContainer">
   <h2 id="authTitle">Вход</h2>
   <input type="tel" id="phoneInput" placeholder="Номер телефона" />
   <input type="password" id="passwordInput" placeholder="Пароль" />
   <button id="authBtn">Войти</button>
-  <div class="link" id="toggleAuth">Нет аккаунта? Зарегистрироваться</div>
-  <div id="authMessage" style="color:red; margin-top:10px;"></div>
+  <div id="authMessage" style="color:red;"></div>
+  <div><a href="#" id="toggleAuth">Нет аккаунта? Зарегистрироваться</a></div>
 </div>
 
-<!-- Профиль -->
-<div class="profile-container" id="profileContainer" style="display:none;">
-  <h2>Профиль</h2>
-  <div>Телефон: <span id="userPhone"></span></div>
-  <div>
-    Имя:<br/>
-    <input type="text" id="userNameInput" placeholder="Ваше имя" />
-  </div>
-  <div>
-    Возраст:<br/>
-    <input type="number" id="userAgeInput" placeholder="Возраст" />
-  </div>
-  <div>
-    О себе:<br/>
-    <textarea id="userDescInput" placeholder="Расскажите о себе"></textarea>
-  </div>
-  <button id="saveProfileBtn">Сохранить профиль</button>
+<div id="profileContainer">
+  <h2>Профиль пользователя</h2>
+  <p>Вы вошли как: <span id="userPhone"></span></p>
   <button id="logoutBtn">Выйти</button>
-
-  <button id="showFriendsBtn" style="margin-top:10px;">Показать путешественников</button>
 </div>
 
-<!-- Список друзей и пользователей -->
-<div id="friendsSection">
-  <h3>Путешественники</h3>
-  <div id="friendsList"></div>
-  <button id="closeFriendsBtn" style="margin-top:10px;">Закрыть</button>
-</div>
-
-<!-- Карта -->
-<div id="map"></div>
-
-<!-- Форма для поездки -->
-<div id="tripForm">
-  <h3>Добавить поездку</h3>
-  <input type="text" id="tripPlace" placeholder="Название места" />
-  <input type="date" id="tripDate" />
-  <textarea id="tripComment" placeholder="Комментарий"></textarea>
-  <select id="tripType">
-    <option value="visited">Был здесь</option>
-    <option value="planned">Планирую</option>
-  </select>
-  <button id="saveTripBtn">Сохранить</button>
-  <button id="cancelTripBtn">Отмена</button>
-</div>
-
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script>
-  // Данные
+  let isLogin = true;
   let users = JSON.parse(localStorage.getItem('users') || '[]');
   let currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
-  let map;
-  let markers = [];
-  let currentLatLng = null;
 
-  // Элементы
   const authContainer = document.getElementById('authContainer');
   const profileContainer = document.getElementById('profileContainer');
-  const mapEl = document.getElementById('map');
   const authTitle = document.getElementById('authTitle');
-  const authBtn = document.getElementById('authBtn');
-  const toggleAuth = document.getElementById('toggleAuth');
-  const authMessage = document.getElementById('authMessage');
   const phoneInput = document.getElementById('phoneInput');
   const passwordInput = document.getElementById('passwordInput');
-
+  const authBtn = document.getElementById('authBtn');
+  const authMessage = document.getElementById('authMessage');
+  const toggleAuth = document.getElementById('toggleAuth');
   const userPhoneSpan = document.getElementById('userPhone');
-  const userNameInput = document.getElementById('userNameInput');
-  const userAgeInput = document.getElementById('userAgeInput');
-  const userDescInput = document.getElementById('userDescInput');
-  const saveProfileBtn = document.getElementById('saveProfileBtn');
   const logoutBtn = document.getElementById('logoutBtn');
 
-  const showFriendsBtn = document.getElementById('showFriendsBtn');
-  const friendsSection = document.getElementById('friendsSection');
-  const friendsList = document.getElementById('friendsList');
-  const closeFriendsBtn = document.getElementById('closeFriendsBtn');
+  function showProfile() {
+    authContainer.style.display = 'none';
+    profileContainer.style.display = 'block';
+    userPhoneSpan.textContent = currentUser.phone;
+  }
 
-  const tripForm = document.getElementById('tripForm');
-  const tripPlace = document.getElementById('tripPlace');
-  const tripDate = document.getElementById('tripDate');
-  const tripComment = document.getElementById('tripComment');
-  const tripType = document.getElementById('tripType');
-  const saveTripBtn = document.getElementById('saveTripBtn');
-  const cancelTripBtn = document.getElementById('cancelTripBtn');
+  function showAuth() {
+    authContainer.style.display = 'block';
+    profileContainer.style.display = 'none';
+    authMessage.textContent = '';
+    phoneInput.value = '';
+    passwordInput.value = '';
+  }
 
-  // Авторизация и регистрация
-  let isLogin = true;
-
-  toggleAuth.onclick = () => {
+  toggleAuth.addEventListener('click', e => {
+    e.preventDefault();
     isLogin = !isLogin;
     if (isLogin) {
       authTitle.textContent = 'Вход';
@@ -173,14 +71,15 @@
       toggleAuth.textContent = 'Уже есть аккаунт? Войти';
     }
     authMessage.textContent = '';
-  };
+  });
 
-  authBtn.onclick = () => {
+  authBtn.addEventListener('click', () => {
     const phone = phoneInput.value.trim();
     const password = passwordInput.value.trim();
+    authMessage.textContent = '';
 
     if (!phone || !password) {
-      authMessage.textContent = 'Введите номер телефона и пароль';
+      authMessage.textContent = 'Пожалуйста, введите номер телефона и пароль.';
       return;
     }
 
@@ -192,22 +91,36 @@
         localStorage.setItem('currentUser', JSON.stringify(currentUser));
         showProfile();
       } else {
-        authMessage.textContent = 'Неверный телефон или пароль';
+        authMessage.textContent = 'Неверный номер телефона или пароль.';
       }
     } else {
       // Регистрация
       if (users.find(u => u.phone === phone)) {
-        authMessage.textContent = 'Пользователь с таким номером уже есть';
+        authMessage.textContent = 'Пользователь с таким номером уже зарегистрирован.';
         return;
       }
-      const newUser = { phone, password, name:'', age:'', desc:'', trips:[], friends:[] };
+      const newUser = { phone, password };
       users.push(newUser);
       localStorage.setItem('users', JSON.stringify(users));
       currentUser = newUser;
       localStorage.setItem('currentUser', JSON.stringify(currentUser));
       showProfile();
     }
-  };
+  });
 
-  // Показ профиля
- 
+  logoutBtn.addEventListener('click', () => {
+    currentUser = null;
+    localStorage.removeItem('currentUser');
+    showAuth();
+  });
+
+  // При загрузке проверяем, если пользователь в сессии — показываем профиль
+  if (currentUser) {
+    showProfile();
+  } else {
+    showAuth();
+  }
+</script>
+
+</body>
+</html>
