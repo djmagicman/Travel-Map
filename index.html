@@ -135,6 +135,7 @@
   let currentUser = null;
   let markers = {};
   let currentEditMarkerId = null;
+  let clickedLatLng = null;
 
   window.onload = () => {
     initMap();
@@ -149,11 +150,10 @@
   }
 
   function onMapClick(e) {
-    const lat = e.latlng.lat;
-    const lng = e.latlng.lng;
+    clickedLatLng = e.latlng;
     document.getElementById('form').style.display = 'block';
-    document.getElementById('coordDisplay').textContent = `Широта: ${lat.toFixed(5)}, Долгота: ${lng.toFixed(5)}`;
-    fetchAddress(lat, lng);
+    document.getElementById('coordDisplay').textContent = `Широта: ${clickedLatLng.lat.toFixed(5)}, Долгота: ${clickedLatLng.lng.toFixed(5)}`;
+    fetchAddress(clickedLatLng.lat, clickedLatLng.lng);
   }
 
   async function fetchAddress(lat, lng) {
@@ -167,16 +167,14 @@
   }
 
   async function saveMarker() {
+    if (!clickedLatLng) return alert('Сначала выберите место на карте');
+
     const placeName = document.getElementById('placeName').value.trim();
     const visitDate = document.getElementById('visitDate').value;
     const comment = document.getElementById('comment').value.trim();
     const type = document.getElementById('markerType').value;
     const color = document.getElementById('markerColor').value;
-    const coordsText = document.getElementById('coordDisplay').textContent;
-    const match = coordsText.match(/Широта: ([\d.-]+), Долгота: ([\d.-]+)/);
-    if (!match) return alert('Координаты не определены');
-    const lat = parseFloat(match[1]);
-    const lng = parseFloat(match[2]);
+    const address = document.getElementById('addressDisplay').textContent;
 
     const markerData = {
       uid: currentUser ? currentUser.uid : 'anonymous',
@@ -185,10 +183,10 @@
       comment,
       type,
       color,
-      lat,
-      lng,
+      lat: clickedLatLng.lat,
+      lng: clickedLatLng.lng,
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-      address: document.getElementById('addressDisplay').textContent
+      address
     };
 
     try {
