@@ -74,10 +74,59 @@
   </style>
 </head>
 <body>
-  <!-- previous content remains unchanged -->
+  <div id="map"></div>
+  <div id="form" class="form-popup">
+    <h3>Добавить поездку</h3>
+    <input id="placeName" placeholder="Название места" />
+    <input id="visitDate" type="date" />
+    <textarea id="comment" placeholder="Комментарий"></textarea>
+    <select id="markerType">
+      <option value="visited">Был</option>
+      <option value="planned">Планирую</option>
+    </select>
+    <select id="markerColor">
+      <option value="red">Красный</option>
+      <option value="green">Зеленый</option>
+      <option value="blue">Синий</option>
+      <option value="yellow">Желтый</option>
+      <option value="purple">Фиолетовый</option>
+      <option value="orange">Оранжевый</option>
+      <option value="brown">Коричневый</option>
+      <option value="pink">Розовый</option>
+      <option value="gray">Серый</option>
+      <option value="black">Черный</option>
+    </select>
+    <input id="mediaInput" type="file" multiple accept="image/*,video/*" />
+    <div id="mediaPreview" class="media-preview"></div>
+    <p id="coordDisplay"></p>
+    <p id="addressDisplay"></p>
+    <button onclick="saveMarker()">Сохранить</button>
+  </div>
 
   <script>
-    // ... остальной код остаётся тем же
+    let map = L.map('map').setView([55.751244, 37.618423], 5);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+    }).addTo(map);
+
+    let markers = JSON.parse(localStorage.getItem('markers') || '[]');
+    let currentEditIndex = null;
+
+    function renderMarkers() {
+      document.querySelectorAll('.leaflet-marker-icon').forEach(el => el.remove());
+      markers.forEach((m, i) => {
+        const icon = L.divIcon({
+          className: '',
+          html: `<div style="width:16px;height:16px;background:${m.color};border-radius:50%;border:2px solid white"></div>`
+        });
+        const marker = L.marker([m.lat, m.lng], { icon }).addTo(map);
+        marker.on('click', () => openForm({ lat: m.lat, lng: m.lng }, m, i));
+      });
+    }
+
+    map.on('click', (e) => {
+      openForm(e.latlng);
+    });
 
     function openForm(latlng, data = null, index = null) {
       const form = document.getElementById('form');
@@ -97,7 +146,6 @@
         const mediaEl = file.type.startsWith('image') ? document.createElement('img') : document.createElement('video');
         mediaEl.src = file.url;
         if (file.type.startsWith('video')) mediaEl.controls = true;
-        mediaEl.style.maxWidth = '100px';
         const delBtn = document.createElement('button');
         delBtn.textContent = '×';
         delBtn.onclick = () => {
@@ -131,14 +179,7 @@
       const newFiles = Array.from(document.getElementById('mediaInput').files).map(file => ({ url: URL.createObjectURL(file), type: file.type }));
 
       if (currentEditIndex !== null) {
-        markers[currentEditIndex].lat = lat;
-        markers[currentEditIndex].lng = lng;
-        markers[currentEditIndex].name = name;
-        markers[currentEditIndex].date = date;
-        markers[currentEditIndex].comment = comment;
-        markers[currentEditIndex].type = type;
-        markers[currentEditIndex].color = color;
-        markers[currentEditIndex].media = markers[currentEditIndex].media.concat(newFiles);
+        markers[currentEditIndex] = { ...markers[currentEditIndex], lat, lng, name, date, comment, type, color, media: markers[currentEditIndex].media.concat(newFiles) };
       } else {
         markers.push({ lat, lng, name, date, comment, type, color, media: newFiles });
       }
@@ -147,6 +188,8 @@
       document.getElementById('form').style.display = 'none';
       renderMarkers();
     }
+
+    renderMarkers();
   </script>
 </body>
 </html>
