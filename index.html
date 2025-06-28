@@ -1,69 +1,75 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Travel Map Social с Авторизацией</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-<style>
-  body, html { margin: 0; padding: 0; height: 100%; font-family: Arial, sans-serif; }
-  #authContainer, #mainContainer { max-width: 400px; margin: 30px auto; }
-  #mainContainer { display: none; height: 80vh; }
-  #map { height: 60vh; margin-bottom: 10px; }
-  input, button, select, textarea { display: block; width: 100%; margin: 6px 0; padding: 8px; font-size: 14px; box-sizing: border-box; }
-  #logoutBtn { margin-top: 10px; background: #d9534f; color: white; border: none; cursor: pointer; }
-  .form-popup, .profile-popup {
-    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    background: white; padding: 10px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.2);
-    z-index: 10000; width: 320px; display: none;
-  }
-  .media-preview img, .media-preview video { max-width: 100%; margin-top: 5px; }
-  .marker-toggle {
-    margin: 10px 0;
-  }
-  .chat-box {
-    background: white; border-radius: 8px; box-shadow: 0 0 8px rgba(0,0,0,0.3);
-    display: flex; flex-direction: column; height: 220px;
-  }
-  .chat-messages {
-    flex: 1; overflow-y: auto; padding: 6px; font-size: 13px; border-bottom: 1px solid #ddd;
-  }
-  .chat-input {
-    display: flex; border-top: 1px solid #ccc;
-  }
-  .chat-input input { flex: 1; border: none; padding: 8px; }
-  .chat-input button {
-    border: none; background: #2196f3; color: white; padding: 8px 12px; cursor: pointer;
-  }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Travel Map Social</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <style>
+    body, html { margin: 0; padding: 0; height: 100%; font-family: sans-serif; }
+    #map { height: 100vh; width: 100vw; }
+    .form-popup, .trip-popup {
+      position: fixed;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: white;
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+      z-index: 1000;
+      display: none;
+      width: 300px;
+    }
+    input, textarea, select, button {
+      display: block;
+      margin-top: 8px;
+      width: 100%;
+    }
+    .hint, .user-info, .footer-note, .profile-btn, .welcome, .friends-btn {
+      position: absolute;
+      background: rgba(255,255,255,0.8);
+      padding: 8px 10px;
+      border-radius: 8px;
+      z-index: 1000;
+      font-size: 14px;
+    }
+    .hint { top: 10px; right: 10px; }
+    .welcome { top: 10px; left: 50%; transform: translateX(-50%); font-size: 18px; font-weight: bold; }
+    .user-info { top: 50px; left: 10px; display: none; }
+    .profile-btn { top: 10px; left: 10px; cursor: pointer; }
+    .friends-btn { top: 50px; right: 10px; cursor: pointer; }
+    .footer-note { bottom: 10px; left: 10px; font-size: 12px; }
+    .media-preview img, .media-preview video { max-width: 100%; margin-top: 5px; }
+    .chat-box {
+      position: fixed;
+      bottom: 10px;
+      right: 10px;
+      background: white;
+      width: 250px;
+      height: 300px;
+      border-radius: 10px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.3);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .chat-messages { flex: 1; overflow-y: auto; padding: 10px; font-size: 13px; }
+    .chat-input {
+      display: flex;
+      border-top: 1px solid #ccc;
+    }
+    .chat-input input { flex: 1; border: none; padding: 8px; }
+    .chat-input button { border: none; background: #2196f3; color: white; padding: 8px; }
+  </style>
 </head>
 <body>
-
-<!-- Авторизация -->
-<div id="authContainer">
-  <h2 id="authTitle">Вход</h2>
-  <input type="tel" id="phoneInput" placeholder="Номер телефона" />
-  <input type="password" id="passwordInput" placeholder="Пароль" />
-  <button id="authBtn">Войти</button>
-  <div id="authMessage" style="color:red; min-height:20px;"></div>
-  <div><a href="#" id="toggleAuth">Нет аккаунта? Зарегистрироваться</a></div>
-</div>
-
-<!-- Основной интерфейс -->
-<div id="mainContainer">
-  <h3>Добро пожаловать, <span id="userPhone"></span>!</h3>
-  <button id="logoutBtn">Выйти</button>
-
   <div id="map"></div>
-
-  <div class="marker-toggle">
-    <label><input type="checkbox" id="toggleVisited" checked /> Был</label>
-    <label><input type="checkbox" id="togglePlanned" checked /> Планирую</label>
-  </div>
-
-  <button onclick="toggleProfile()">👤 Профиль</button>
-
-  <!-- Форма для добавления места -->
+  <div class="welcome" id="welcomeText">Добро пожаловать!</div>
+  <div class="hint">🖱️ Кликни по карте, чтобы создать поездку</div>
+  <div class="profile-btn" onclick="toggleProfile()">👤 Профиль</div>
+  <div class="friends-btn" onclick="alert('Здесь будет список друзей и добавление по номеру телефона')">👥 Друзья</div>
   <div class="form-popup" id="form">
     <input type="text" id="placeName" placeholder="Название места" />
     <input type="date" id="visitDate" />
@@ -72,24 +78,33 @@
       <option value="visited">Был здесь</option>
       <option value="planned">Планирую поездку</option>
     </select>
+    <label>Цвет булавки:</label>
+    <select id="markerColor">
+      <option value="red">Красный</option>
+      <option value="blue">Синий</option>
+      <option value="green">Зелёный</option>
+      <option value="orange">Оранжевый</option>
+      <option value="purple">Фиолетовый</option>
+      <option value="pink">Розовый</option>
+      <option value="yellow">Жёлтый</option>
+      <option value="brown">Коричневый</option>
+      <option value="black">Чёрный</option>
+      <option value="gray">Серый</option>
+    </select>
     <input type="file" id="mediaInput" accept="image/*,video/*" multiple />
     <div class="media-preview" id="mediaPreview"></div>
     <div id="coordDisplay"></div>
+    <div id="addressDisplay"></div>
     <button onclick="saveMarker()">💾 Сохранить</button>
-    <button onclick="closeForm()">Отмена</button>
   </div>
-
-  <!-- Профиль -->
-  <div class="profile-popup" id="profile">
-    <b>Профиль</b>
+  <div class="user-info" id="profile">
+    <b>Профиль</b><br>
     <input type="text" id="username" placeholder="Имя" />
     <input type="number" id="userage" placeholder="Возраст" />
     <textarea id="userdesc" placeholder="О себе"></textarea>
     <button onclick="saveProfile()">💾 Сохранить</button>
-    <button onclick="toggleProfile()">Закрыть</button>
   </div>
-
-  <!-- Чат -->
+  <div class="footer-note">Сделано с душой 🐻 Мишкой</div>
   <div class="chat-box">
     <div class="chat-messages" id="chatMessages"></div>
     <div class="chat-input">
@@ -97,350 +112,131 @@
       <button onclick="sendMessage()">➤</button>
     </div>
   </div>
-</div>
 
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-<script>
-  // --- Данные ---
-  let users = JSON.parse(localStorage.getItem('users') || '[]');
-  let currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
-
-  // DOM
-  const authContainer = document.getElementById('authContainer');
-  const mainContainer = document.getElementById('mainContainer');
-  const authTitle = document.getElementById('authTitle');
-  const phoneInput = document.getElementById('phoneInput');
-  const passwordInput = document.getElementById('passwordInput');
-  const authBtn = document.getElementById('authBtn');
-  const authMessage = document.getElementById('authMessage');
-  const toggleAuth = document.getElementById('toggleAuth');
-  const userPhoneSpan = document.getElementById('userPhone');
-  const logoutBtn = document.getElementById('logoutBtn');
-
-  // Форма и профиль
-  const form = document.getElementById('form');
-  const profilePopup = document.getElementById('profile');
-
-  const placeNameInput = document.getElementById('placeName');
-  const visitDateInput = document.getElementById('visitDate');
-  const commentInput = document.getElementById('comment');
-  const markerTypeSelect = document.getElementById('markerType');
-  const mediaInput = document.getElementById('mediaInput');
-  const mediaPreview = document.getElementById('mediaPreview');
-  const coordDisplay = document.getElementById('coordDisplay');
-
-  // Маркеры и карта
-  let map;
-  let leafletMarkers = [];
-  let currentLatLng = null;
-
-  // Чат
-  let chat = [];
-
-  // Авторизация: переключение Вход / Регистрация
-  let isLogin = true;
-
-  // --- Функции интерфейса ---
-  function showMain() {
-    authContainer.style.display = 'none';
-    mainContainer.style.display = 'block';
-    userPhoneSpan.textContent = currentUser.phone;
-    loadUserData();
-    initMap();
-    renderMarkers();
-    renderChat();
-  }
-
-  function showAuth() {
-    authContainer.style.display = 'block';
-    mainContainer.style.display = 'none';
-    authMessage.textContent = '';
-    phoneInput.value = '';
-    passwordInput.value = '';
-  }
-
-  // Инициализация карты
-  function initMap() {
-    if (map) return;
-    map = L.map('map').setView([55.75, 37.62], 4);
+  <script>
+    const map = L.map('map').setView([55.75, 37.62], 4);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 
-    map.on('click', function(e) {
+    let markers = JSON.parse(localStorage.getItem('markers')) || [];
+    let chat = JSON.parse(localStorage.getItem('chat')) || [];
+    let currentLatLng = null;
+    let leafletMarkers = [];
+
+    map.on('click', async function(e) {
       currentLatLng = e.latlng;
-      openForm();
-    });
-
-    // Фильтры
-    document.getElementById('toggleVisited').addEventListener('change', renderMarkers);
-    document.getElementById('togglePlanned').addEventListener('change', renderMarkers);
-  }
-
-  // Открыть форму добавления маркера
-  function openForm() {
-    form.style.display = 'block';
-    placeNameInput.value = '';
-    visitDateInput.value = '';
-    commentInput.value = '';
-    markerTypeSelect.value = 'visited';
-    mediaInput.value = '';
-    mediaPreview.innerHTML = '';
-    coordDisplay.textContent = `Координаты: ${currentLatLng.lat.toFixed(5)}, ${currentLatLng.lng.toFixed(5)}`;
-  }
-
-  function closeForm() {
-    form.style.display = 'none';
-    currentLatLng = null;
-  }
-
-  // Загрузка превью медиа при выборе
-  mediaInput.addEventListener('change', () => {
-    mediaPreview.innerHTML = '';
-    Array.from(mediaInput.files).forEach(file => {
-      const url = URL.createObjectURL(file);
-      if (file.type.startsWith('image/')) {
-        const img = document.createElement('img');
-        img.src = url;
-        mediaPreview.appendChild(img);
-      } else if (file.type.startsWith('video/')) {
-        const video = document.createElement('video');
-        video.src = url;
-        video.controls = true;
-        mediaPreview.appendChild(video);
+      const form = document.getElementById('form');
+      form.style.display = 'block';
+      form.dataset.lat = e.latlng.lat;
+      form.dataset.lng = e.latlng.lng;
+      document.getElementById('placeName').value = '';
+      document.getElementById('visitDate').value = '';
+      document.getElementById('comment').value = '';
+      document.getElementById('mediaInput').value = '';
+      document.getElementById('coordDisplay').textContent = `Координаты: ${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`;
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${e.latlng.lat}&lon=${e.latlng.lng}&format=json`);
+        const data = await res.json();
+        document.getElementById('addressDisplay').textContent = `Адрес: ${data.display_name}`;
+      } catch {
+        document.getElementById('addressDisplay').textContent = 'Адрес не найден';
       }
     });
-  });
 
-  // Сохранение маркера
-  function saveMarker() {
-    if (!placeNameInput.value.trim()) {
-      alert('Введите название места');
-      return;
-    }
-    if (!currentLatLng) {
-      alert('Ошибка с координатами');
-      return;
-    }
-
-    // Загружаем медиа как base64 (упрощенно для demo)
-    const files = mediaInput.files;
-    let mediaData = [];
-
-    if (files.length === 0) {
-      saveMarkerData([]);
-    } else {
-      let loadedCount = 0;
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          mediaData.push({ type: file.type, data: e.target.result });
-          loadedCount++;
-          if (loadedCount === files.length) {
-            saveMarkerData(mediaData);
-          }
-        };
-        reader.readAsDataURL(file);
+    document.addEventListener('click', function(e) {
+      const form = document.getElementById('form');
+      if (form.style.display === 'block' && !form.contains(e.target) && !e.target.closest('.leaflet-container')) {
+        form.style.display = 'none';
       }
-    }
+    });
 
-    function saveMarkerData(media) {
-      const newMarker = {
-        id: Date.now(),
-        name: placeNameInput.value.trim(),
-        date: visitDateInput.value,
-        comment: commentInput.value.trim(),
-        type: markerTypeSelect.value,
-        lat: currentLatLng.lat,
-        lng: currentLatLng.lng,
-        media: media
-      };
-
-      currentUser.markers.push(newMarker);
-      saveCurrentUser();
+    function saveMarker() {
+      const lat = parseFloat(document.getElementById('form').dataset.lat);
+      const lng = parseFloat(document.getElementById('form').dataset.lng);
+      const name = document.getElementById('placeName').value.trim();
+      const date = document.getElementById('visitDate').value;
+      const comment = document.getElementById('comment').value.trim();
+      const type = document.getElementById('markerType').value;
+      const color = document.getElementById('markerColor').value;
+      const files = Array.from(document.getElementById('mediaInput').files).map(file => ({ url: URL.createObjectURL(file), type: file.type }));
+      markers.push({ lat, lng, name, date, comment, type, color, media: files });
+      localStorage.setItem('markers', JSON.stringify(markers));
+      document.getElementById('form').style.display = 'none';
       renderMarkers();
-      closeForm();
     }
-  }
 
-  // Отрисовка маркеров
-  function renderMarkers() {
-    // Удаляем старые
-    leafletMarkers.forEach(m => map.removeLayer(m));
-    leafletMarkers = [];
-
-    if (!currentUser.markers) return;
-
-    const showVisited = document.getElementById('toggleVisited').checked;
-    const showPlanned = document.getElementById('togglePlanned').checked;
-
-    currentUser.markers.forEach(marker => {
-      if ((marker.type === 'visited' && !showVisited) || (marker.type === 'planned' && !showPlanned)) return;
-
-      const icon = L.divIcon({
-        className: 'custom-div-icon',
-        html: marker.type === 'visited' ? '📍' : '📌',
-        iconSize: [24, 24],
-        iconAnchor: [12, 24],
-      });
-
-      const leafletMarker = L.marker([marker.lat, marker.lng], { icon }).addTo(map);
-
-      let popupContent = `<b>${marker.name}</b><br>`;
-      if (marker.date) popupContent += `Дата: ${marker.date}<br>`;
-      if (marker.comment) popupContent += `${marker.comment}<br>`;
-      if (marker.media && marker.media.length > 0) {
-        marker.media.forEach(m => {
-          if (m.type.startsWith('image/')) {
-            popupContent += `<img src="${m.data}" style="max-width:200px; display:block; margin-top:5px;" />`;
-          } else if (m.type.startsWith('video/')) {
-            popupContent += `<video src="${m.data}" controls style="max-width:200px; display:block; margin-top:5px;"></video>`;
-          }
+    function renderMarkers() {
+      leafletMarkers.forEach(m => map.removeLayer(m));
+      leafletMarkers = [];
+      markers.forEach((m, i) => {
+        const icon = L.divIcon({
+          className: '',
+          html: `<div style="width:12px;height:12px;border-radius:50%;background:${m.color || 'red'};border:2px solid white;"></div>`,
+          iconSize: [12, 12],
+          iconAnchor: [6, 6]
         });
+
+        const marker = L.marker([m.lat, m.lng], { icon: icon, draggable: true }).addTo(map);
+
+        marker.on('dragend', function (e) {
+          const newPos = e.target.getLatLng();
+          markers[i].lat = newPos.lat;
+          markers[i].lng = newPos.lng;
+          localStorage.setItem('markers', JSON.stringify(markers));
+        });
+
+        const mediaHtml = (m.media || []).map(f =>
+          f.type.startsWith('image')
+            ? `<img src="${f.url}" style="max-width:100px;margin:4px 0"/>`
+            : `<video src="${f.url}" controls style="max-width:100px;margin:4px 0"></video>`
+        ).join('');
+
+        marker.bindPopup(`<b>${m.name}</b><br>${m.comment}<br>${m.date}<br>${mediaHtml}`);
+        leafletMarkers.push(marker);
+      });
+    }
+
+    function toggleProfile() {
+      const el = document.getElementById('profile');
+      el.style.display = el.style.display === 'none' ? 'block' : 'none';
+    }
+
+    function saveProfile() {
+      const username = document.getElementById('username').value.trim();
+      const age = document.getElementById('userage').value;
+      const desc = document.getElementById('userdesc').value.trim();
+      localStorage.setItem('profile', JSON.stringify({ username, age, desc }));
+      document.getElementById('welcomeText').textContent = `Добро пожаловать, ${username || 'Гость'}!`;
+    }
+
+    function renderChat() {
+      const box = document.getElementById('chatMessages');
+      box.innerHTML = chat.map(m => `<div><b>${m.name}</b>: ${m.text}</div>`).join('');
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function sendMessage() {
+      const text = document.getElementById('chatInput').value.trim();
+      const user = document.getElementById('username').value || 'Гость';
+      if (!text) return;
+      chat.push({ name: user, text });
+      localStorage.setItem('chat', JSON.stringify(chat));
+      document.getElementById('chatInput').value = '';
+      renderChat();
+    }
+
+    window.addEventListener('load', () => {
+      const profile = JSON.parse(localStorage.getItem('profile'));
+      if (profile) {
+        document.getElementById('username').value = profile.username || '';
+        document.getElementById('userage').value = profile.age || '';
+        document.getElementById('userdesc').value = profile.desc || '';
+        document.getElementById('welcomeText').textContent = `Добро пожаловать, ${profile.username || 'Гость'}!`;
       }
-      leafletMarker.bindPopup(popupContent);
-      leafletMarkers.push(leafletMarker);
+      renderMarkers();
+      renderChat();
     });
-  }
-
-  // --- Профиль ---
-  const usernameInput = document.getElementById('username');
-  const userageInput = document.getElementById('userage');
-  const userdescInput = document.getElementById('userdesc');
-
-  function toggleProfile() {
-    if (profilePopup.style.display === 'block') {
-      profilePopup.style.display = 'none';
-    } else {
-      usernameInput.value = currentUser.profile?.name || '';
-      userageInput.value = currentUser.profile?.age || '';
-      userdescInput.value = currentUser.profile?.desc || '';
-      profilePopup.style.display = 'block';
-    }
-  }
-
-  function saveProfile() {
-    currentUser.profile = {
-      name: usernameInput.value.trim(),
-      age: userageInput.value.trim(),
-      desc: userdescInput.value.trim()
-    };
-    saveCurrentUser();
-    alert('Профиль сохранён');
-    toggleProfile();
-  }
-
-  // --- Чат ---
-  const chatMessagesDiv = document.getElementById('chatMessages');
-  const chatInput = document.getElementById('chatInput');
-
-  function loadUserData() {
-    if (!currentUser.markers) currentUser.markers = [];
-    if (!currentUser.chat) currentUser.chat = [];
-    chat = JSON.parse(localStorage.getItem('chat') || '[]');
-  }
-
-  function renderChat() {
-    chatMessagesDiv.innerHTML = '';
-    chat.forEach(msg => {
-      const div = document.createElement('div');
-      div.innerHTML = `<b>${msg.user}:</b> ${msg.text}`;
-      chatMessagesDiv.appendChild(div);
-    });
-    chatMessagesDiv.scrollTop = chatMessagesDiv.scrollHeight;
-  }
-
-  function sendMessage() {
-    const text = chatInput.value.trim();
-    if (!text) return;
-    const message = { user: currentUser.phone, text: text, time: Date.now() };
-    chat.push(message);
-    localStorage.setItem('chat', JSON.stringify(chat));
-    chatInput.value = '';
-    renderChat();
-  }
-
-  // --- Авторизация ---
-
-  authBtn.addEventListener('click', () => {
-    const phone = phoneInput.value.trim();
-    const password = passwordInput.value;
-
-    if (!phone || !password) {
-      authMessage.textContent = 'Введите номер телефона и пароль';
-      return;
-    }
-
-    if (isLogin) {
-      // Вход
-      const user = users.find(u => u.phone === phone && u.password === password);
-      if (!user) {
-        authMessage.textContent = 'Неверный номер телефона или пароль';
-        return;
-      }
-      currentUser = user;
-      localStorage.setItem('currentUser', JSON.stringify(currentUser));
-      showMain();
-    } else {
-      // Регистрация
-      if (users.find(u => u.phone === phone)) {
-        authMessage.textContent = 'Пользователь с таким номером уже существует';
-        return;
-      }
-      const newUser = {
-        phone,
-        password,
-        markers: [],
-        profile: {},
-      };
-      users.push(newUser);
-      localStorage.setItem('users', JSON.stringify(users));
-      currentUser = newUser;
-      localStorage.setItem('currentUser', JSON.stringify(currentUser));
-      showMain();
-    }
-  });
-
-  toggleAuth.addEventListener('click', e => {
-    e.preventDefault();
-    isLogin = !isLogin;
-    if (isLogin) {
-      authTitle.textContent = 'Вход';
-      authBtn.textContent = 'Войти';
-      toggleAuth.textContent = 'Нет аккаунта? Зарегистрироваться';
-      authMessage.textContent = '';
-    } else {
-      authTitle.textContent = 'Регистрация';
-      authBtn.textContent = 'Зарегистрироваться';
-      toggleAuth.textContent = 'Есть аккаунт? Войти';
-      authMessage.textContent = '';
-    }
-  });
-
-  logoutBtn.addEventListener('click', () => {
-    currentUser = null;
-    localStorage.removeItem('currentUser');
-    showAuth();
-  });
-
-  // Сохранить изменения пользователя в users и localStorage
-  function saveCurrentUser() {
-    const idx = users.findIndex(u => u.phone === currentUser.phone);
-    if (idx !== -1) {
-      users[idx] = currentUser;
-      localStorage.setItem('users', JSON.stringify(users));
-      localStorage.setItem('currentUser', JSON.stringify(currentUser));
-    }
-  }
-
-  // При загрузке
-  if (currentUser) {
-    showMain();
-  } else {
-    showAuth();
-  }
-</script>
-
+  </script>
 </body>
 </html>
