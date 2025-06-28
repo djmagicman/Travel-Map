@@ -3,41 +3,110 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Карта после входа</title>
+<title>Travel Map Social с Авторизацией</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 <style>
   body, html { margin: 0; padding: 0; height: 100%; font-family: Arial, sans-serif; }
   #authContainer, #mainContainer { max-width: 400px; margin: 30px auto; }
   #mainContainer { display: none; height: 80vh; }
-  #map { height: 100%; }
-  input, button { display: block; width: 100%; margin: 10px 0; padding: 10px; font-size: 16px; }
+  #map { height: 60vh; margin-bottom: 10px; }
+  input, button, select, textarea { display: block; width: 100%; margin: 6px 0; padding: 8px; font-size: 14px; box-sizing: border-box; }
   #logoutBtn { margin-top: 10px; background: #d9534f; color: white; border: none; cursor: pointer; }
+  .form-popup, .profile-popup {
+    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    background: white; padding: 10px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    z-index: 10000; width: 320px; display: none;
+  }
+  .media-preview img, .media-preview video { max-width: 100%; margin-top: 5px; }
+  .marker-toggle {
+    margin: 10px 0;
+  }
+  .chat-box {
+    background: white; border-radius: 8px; box-shadow: 0 0 8px rgba(0,0,0,0.3);
+    display: flex; flex-direction: column; height: 220px;
+  }
+  .chat-messages {
+    flex: 1; overflow-y: auto; padding: 6px; font-size: 13px; border-bottom: 1px solid #ddd;
+  }
+  .chat-input {
+    display: flex; border-top: 1px solid #ccc;
+  }
+  .chat-input input { flex: 1; border: none; padding: 8px; }
+  .chat-input button {
+    border: none; background: #2196f3; color: white; padding: 8px 12px; cursor: pointer;
+  }
 </style>
 </head>
 <body>
 
+<!-- Авторизация -->
 <div id="authContainer">
   <h2 id="authTitle">Вход</h2>
   <input type="tel" id="phoneInput" placeholder="Номер телефона" />
   <input type="password" id="passwordInput" placeholder="Пароль" />
   <button id="authBtn">Войти</button>
-  <div id="authMessage" style="color:red;"></div>
+  <div id="authMessage" style="color:red; min-height:20px;"></div>
   <div><a href="#" id="toggleAuth">Нет аккаунта? Зарегистрироваться</a></div>
 </div>
 
+<!-- Основной интерфейс -->
 <div id="mainContainer">
-  <h2>Добро пожаловать, <span id="userPhone"></span>!</h2>
-  <div id="map"></div>
+  <h3>Добро пожаловать, <span id="userPhone"></span>!</h3>
   <button id="logoutBtn">Выйти</button>
+
+  <div id="map"></div>
+
+  <div class="marker-toggle">
+    <label><input type="checkbox" id="toggleVisited" checked /> Был</label>
+    <label><input type="checkbox" id="togglePlanned" checked /> Планирую</label>
+  </div>
+
+  <button onclick="toggleProfile()">👤 Профиль</button>
+
+  <!-- Форма для добавления места -->
+  <div class="form-popup" id="form">
+    <input type="text" id="placeName" placeholder="Название места" />
+    <input type="date" id="visitDate" />
+    <textarea id="comment" placeholder="Комментарий"></textarea>
+    <select id="markerType">
+      <option value="visited">Был здесь</option>
+      <option value="planned">Планирую поездку</option>
+    </select>
+    <input type="file" id="mediaInput" accept="image/*,video/*" multiple />
+    <div class="media-preview" id="mediaPreview"></div>
+    <div id="coordDisplay"></div>
+    <div id="addressDisplay"></div>
+    <button onclick="saveMarker()">💾 Сохранить</button>
+    <button onclick="closeForm()">Отмена</button>
+  </div>
+
+  <!-- Профиль -->
+  <div class="profile-popup" id="profile">
+    <b>Профиль</b>
+    <input type="text" id="username" placeholder="Имя" />
+    <input type="number" id="userage" placeholder="Возраст" />
+    <textarea id="userdesc" placeholder="О себе"></textarea>
+    <button onclick="saveProfile()">💾 Сохранить</button>
+    <button onclick="toggleProfile()">Закрыть</button>
+  </div>
+
+  <!-- Чат -->
+  <div class="chat-box">
+    <div class="chat-messages" id="chatMessages"></div>
+    <div class="chat-input">
+      <input id="chatInput" placeholder="Напишите сообщение..." />
+      <button onclick="sendMessage()">➤</button>
+    </div>
+  </div>
 </div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script>
-  // Пользователи и текущий пользователь из localStorage
+  // --- Авторизация и данные пользователя ---
   let users = JSON.parse(localStorage.getItem('users') || '[]');
   let currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
 
-  // Элементы страницы
+  // DOM элементы
   const authContainer = document.getElementById('authContainer');
   const mainContainer = document.getElementById('mainContainer');
   const authTitle = document.getElementById('authTitle');
@@ -49,18 +118,42 @@
   const userPhoneSpan = document.getElementById('userPhone');
   const logoutBtn = document.getElementById('logoutBtn');
 
-  let isLogin = true; // флаг переключения между входом и регистрацией
-  let map; // переменная для карты Leaflet
+  // Форма добавления маркера и профиль
+  const form = document.getElementById('form');
+  const profilePopup = document.getElementById('profile');
 
-  // Показать основной интерфейс (карту и кнопку выхода)
+  // Элементы формы
+  const placeNameInput = document.getElementById('placeName');
+  const visitDateInput = document.getElementById('visitDate');
+  const commentInput = document.getElementById('comment');
+  const markerTypeSelect = document.getElementById('markerType');
+  const mediaInput = document.getElementById('mediaInput');
+  const mediaPreview = document.getElementById('mediaPreview');
+  const coordDisplay = document.getElementById('coordDisplay');
+  const addressDisplay = document.getElementById('addressDisplay');
+
+  // Маркеры и карта
+  let map;
+  let leafletMarkers = [];
+  let currentLatLng = null;
+
+  // Чат
+  let chat = [];
+
+  // Переключатель между входом и регистрацией
+  let isLogin = true;
+
+  // Функции отображения интерфейса
   function showMain() {
     authContainer.style.display = 'none';
     mainContainer.style.display = 'block';
     userPhoneSpan.textContent = currentUser.phone;
+    loadUserData();
     initMap();
+    renderMarkers();
+    renderChat();
   }
 
-  // Показать форму авторизации
   function showAuth() {
     authContainer.style.display = 'block';
     mainContainer.style.display = 'none';
@@ -69,83 +162,20 @@
     passwordInput.value = '';
   }
 
-  // Инициализация карты Leaflet
+  // Инициализация карты
   function initMap() {
-    if (map) return; // если карта уже создана, не создаём заново
-    map = L.map('map').setView([55.75, 37.62], 5);
+    if (map) return;
+    map = L.map('map').setView([55.75, 37.62], 4);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
+
+    // Клик по карте - открыть форму добавления
+    map.on('click', async function(e) {
+      currentLatLng = e.latlng;
+      openForm(e.latlng);
+    });
   }
 
-  // Обработчик переключения между входом и регистрацией
-  toggleAuth.addEventListener('click', e => {
-    e.preventDefault();
-    isLogin = !isLogin;
-    if (isLogin) {
-      authTitle.textContent = 'Вход';
-      authBtn.textContent = 'Войти';
-      toggleAuth.textContent = 'Нет аккаунта? Зарегистрироваться';
-    } else {
-      authTitle.textContent = 'Регистрация';
-      authBtn.textContent = 'Зарегистрироваться';
-      toggleAuth.textContent = 'Уже есть аккаунт? Войти';
-    }
-    authMessage.textContent = '';
-  });
-
-  // Обработчик кнопки Войти / Зарегистрироваться
-  authBtn.addEventListener('click', () => {
-    const phone = phoneInput.value.trim();
-    const password = passwordInput.value.trim();
-    authMessage.textContent = '';
-
-    if (!phone || !password) {
-      authMessage.textContent = 'Пожалуйста, введите номер телефона и пароль.';
-      return;
-    }
-
-    if (isLogin) {
-      // Вход
-      const user = users.find(u => u.phone === phone && u.password === password);
-      if (user) {
-        currentUser = user;
-        localStorage.setItem('currentUser', JSON.stringify(currentUser));
-        showMain();
-      } else {
-        authMessage.textContent = 'Неверный номер телефона или пароль.';
-      }
-    } else {
-      // Регистрация
-      if (users.find(u => u.phone === phone)) {
-        authMessage.textContent = 'Пользователь с таким номером уже зарегистрирован.';
-        return;
-      }
-      const newUser = { phone, password };
-      users.push(newUser);
-      localStorage.setItem('users', JSON.stringify(users));
-      currentUser = newUser;
-      localStorage.setItem('currentUser', JSON.stringify(currentUser));
-      showMain();
-    }
-  });
-
-  // Кнопка выхода
-  logoutBtn.addEventListener('click', () => {
-    currentUser = null;
-    localStorage.removeItem('currentUser');
-    showAuth();
-  });
-
-  // При загрузке проверяем сессию и показываем нужный интерфейс
-  window.addEventListener('load', () => {
-    if (currentUser) {
-      showMain();
-    } else {
-      showAuth();
-    }
-  });
-</script>
-
-</body>
-</html>
+  // Открыть форму добавления маркера
+  async function openForm(latlng)
