@@ -143,14 +143,18 @@
   <div id="tripsPopup" class="popup">
     <h3>Путешествия</h3>
     <div>
-      <p>Создание маршрутов между точками будет доступно в следующем обновлении.</p>
-      <p>Вы сможете выбрать начальную и конечную точки, добавлять промежуточные и отображать маршрут на карте.</p>
+      <input type="text" id="tripName" placeholder="Название путешествия">
+      <button class="save" onclick="startTripRoute()">Начать маршрут</button>
+      <button onclick="closePopup('tripsPopup')">Закрыть</button>
     </div>
-    <button onclick="closePopup('tripsPopup')">Закрыть</button>
   </div>
 
   <script>
     let map;
+    let currentLatLng = null;
+    let markers = [];
+    let currentTrip = null;
+
     document.addEventListener("DOMContentLoaded", function () {
       map = L.map('map').setView([55.7558, 37.6173], 5);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -162,9 +166,6 @@
         document.getElementById('formPopup').style.display = 'block';
       });
     });
-
-    let currentLatLng = null;
-    let markers = [];
 
     function closeForm() {
       document.getElementById('formPopup').style.display = 'none';
@@ -220,6 +221,10 @@
       const name = document.getElementById('userName').value;
       document.getElementById('userInfo').textContent = `Здравствуйте, ${name || 'гость'}`;
       closePopup('profilePopup');
+    }
+
+    function startTripRoute() {
+      alert("Создание маршрутов будет реализовано на следующем этапе.");
     }
   </script>
 </body>
