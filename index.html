@@ -4,12 +4,23 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Travel Map Social</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet/dist/leaflet.css"
+  />
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <style>
-    body, html { margin: 0; padding: 0; height: 100%; font-family: sans-serif; }
-    #map { height: 100%; }
-    .form-popup, .trip-popup {
+    body,
+    html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: sans-serif;
+    }
+    #map {
+      height: 100%;
+    }
+    .form-popup {
       position: fixed;
       top: 10px;
       left: 50%;
@@ -17,31 +28,56 @@
       background: white;
       padding: 15px;
       border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.25);
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.25);
       z-index: 1000;
       width: 320px;
       display: none;
+      max-height: 80vh;
+      overflow-y: auto;
     }
-    input, textarea, select, button {
+    input,
+    textarea,
+    select,
+    button {
       display: block;
       margin-top: 8px;
       width: 100%;
       box-sizing: border-box;
     }
-    .hint, .user-info, .footer-note, .profile-btn {
+    .hint,
+    .user-info,
+    .footer-note,
+    .profile-btn {
       position: absolute;
-      background: rgba(255,255,255,0.9);
+      background: rgba(255, 255, 255, 0.9);
       padding: 8px 12px;
       border-radius: 8px;
       z-index: 1000;
       font-size: 14px;
       user-select: none;
     }
-    .hint { top: 10px; right: 10px; }
-    .user-info { top: 50px; left: 10px; width: 280px; display: none; }
-    .profile-btn { top: 10px; left: 10px; cursor: pointer; }
-    .footer-note { bottom: 10px; left: 10px; font-size: 12px; }
-    .media-preview img, .media-preview video {
+    .hint {
+      top: 10px;
+      right: 10px;
+    }
+    .user-info {
+      top: 50px;
+      left: 10px;
+      width: 280px;
+      display: none;
+    }
+    .profile-btn {
+      top: 10px;
+      left: 10px;
+      cursor: pointer;
+    }
+    .footer-note {
+      bottom: 10px;
+      left: 10px;
+      font-size: 12px;
+    }
+    .media-preview img,
+    .media-preview video {
       max-width: 100%;
       margin-top: 5px;
       border-radius: 5px;
@@ -54,7 +90,7 @@
       width: 300px;
       height: 320px;
       border-radius: 10px;
-      box-shadow: 0 0 8px rgba(0,0,0,0.3);
+      box-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -85,22 +121,6 @@
       cursor: pointer;
       font-size: 16px;
     }
-    .marker-toggle {
-      position: absolute;
-      top: 90px;
-      left: 10px;
-      background: rgba(255,255,255,0.9);
-      padding: 8px 12px;
-      border-radius: 8px;
-      z-index: 1000;
-      font-size: 14px;
-      user-select: none;
-    }
-    .marker-toggle label {
-      display: block;
-      margin-bottom: 5px;
-      cursor: pointer;
-    }
   </style>
 </head>
 <body>
@@ -110,11 +130,6 @@
 
   <div class="profile-btn" onclick="toggleProfile()">👤 Профиль</div>
 
-  <div class="marker-toggle">
-    <label><input type="checkbox" id="toggleVisited" checked /> Был</label>
-    <label><input type="checkbox" id="togglePlanned" checked /> Планирую</label>
-  </div>
-
   <div class="form-popup" id="form">
     <input type="text" id="placeName" placeholder="Название места" />
     <input type="date" id="visitDate" />
@@ -123,11 +138,26 @@
       <option value="visited">Был здесь (зеленая отметка)</option>
       <option value="planned">Планирую поездку (красная отметка)</option>
     </select>
-    <input type="file" id="mediaInput" accept="image/*,video/*" multiple />
+    <input
+      type="file"
+      id="mediaInput"
+      accept="image/*,video/*"
+      multiple
+    />
     <div class="media-preview" id="mediaPreview"></div>
-    <div id="coordDisplay" style="margin-top:10px; font-size:13px; font-weight:bold;"></div>
-    <div id="addressDisplay" style="font-size:13px; color:#555;"></div>
+    <div
+      id="coordDisplay"
+      style="margin-top: 10px; font-size: 13px; font-weight: bold;"
+    ></div>
+    <div id="addressDisplay" style="font-size: 13px; color: #555;"></div>
     <button onclick="saveMarker()">💾 Сохранить</button>
+    <button
+      style="margin-top:8px; background:#eee; color:#555"
+      onclick="closeForm()"
+      type="button"
+    >
+      ❌ Отмена
+    </button>
   </div>
 
   <div class="user-info" id="profile">
@@ -149,29 +179,33 @@
   </div>
 
   <script>
-    // Иконки булавок
+    // Иконки булавок с CDN, проверенные
     const greenIcon = new L.Icon({
-      iconUrl: 'https://cdn.jsdelivr.net/gh/pointhi/leaflet-color-markers/img/marker-icon-green.png',
-      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+      iconUrl:
+        'https://cdn.jsdelivr.net/gh/pointhi/leaflet-color-markers/img/marker-icon-green.png',
+      shadowUrl:
+        'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
       iconSize: [25, 41],
       iconAnchor: [12, 41],
       popupAnchor: [1, -34],
-      shadowSize: [41, 41]
+      shadowSize: [41, 41],
     });
 
     const redIcon = new L.Icon({
-      iconUrl: 'https://cdn.jsdelivr.net/gh/pointhi/leaflet-color-markers/img/marker-icon-red.png',
-      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+      iconUrl:
+        'https://cdn.jsdelivr.net/gh/pointhi/leaflet-color-markers/img/marker-icon-red.png',
+      shadowUrl:
+        'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
       iconSize: [25, 41],
       iconAnchor: [12, 41],
       popupAnchor: [1, -34],
-      shadowSize: [41, 41]
+      shadowSize: [41, 41],
     });
 
     const map = L.map('map').setView([55.75, 37.62], 4);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors'
+      attribution: '&copy; OpenStreetMap contributors',
     }).addTo(map);
 
     let markers = JSON.parse(localStorage.getItem('markers')) || [];
@@ -179,10 +213,7 @@
     let currentLatLng = null;
     let leafletMarkers = [];
 
-    document.getElementById('toggleVisited').addEventListener('change', renderMarkers);
-    document.getElementById('togglePlanned').addEventListener('change', renderMarkers);
-
-    map.on('click', async function(e) {
+    map.on('click', async function (e) {
       currentLatLng = e.latlng;
       const form = document.getElementById('form');
       form.style.display = 'block';
@@ -197,29 +228,43 @@
       document.getElementById('mediaInput').value = '';
       document.getElementById('mediaPreview').innerHTML = '';
 
-      document.getElementById('coordDisplay').textContent = `Координаты: ${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`;
+      document.getElementById('coordDisplay').textContent = `Координаты: ${e.latlng.lat.toFixed(
+        5
+      )}, ${e.latlng.lng.toFixed(5)}`;
+
       try {
-        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${e.latlng.lat}&lon=${e.latlng.lng}&format=json`);
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?lat=${e.latlng.lat}&lon=${e.latlng.lng}&format=json`
+        );
         const data = await res.json();
-        document.getElementById('addressDisplay').textContent = `Адрес: ${data.display_name || 'Не найден'}`;
+        document.getElementById('addressDisplay').textContent = `Адрес: ${
+          data.display_name || 'Не найден'
+        }`;
       } catch {
-        document.getElementById('addressDisplay').textContent = 'Адрес: Не удалось получить';
+        document.getElementById('addressDisplay').textContent =
+          'Адрес: Не удалось получить';
       }
     });
 
-    document.getElementById('mediaInput').addEventListener('change', function(e) {
+    document.getElementById('mediaInput').addEventListener('change', function (e) {
       const preview = document.getElementById('mediaPreview');
       preview.innerHTML = '';
-      Array.from(e.target.files).forEach(file => {
+      Array.from(e.target.files).forEach((file) => {
         const url = URL.createObjectURL(file);
-        if(file.type.startsWith('image/')) {
+        if (file.type.startsWith('image/')) {
           const img = document.createElement('img');
           img.src = url;
+          img.style.maxWidth = '100%';
+          img.style.marginTop = '5px';
+          img.style.borderRadius = '5px';
           preview.appendChild(img);
-        } else if(file.type.startsWith('video/')) {
+        } else if (file.type.startsWith('video/')) {
           const video = document.createElement('video');
           video.src = url;
           video.controls = true;
+          video.style.maxWidth = '100%';
+          video.style.marginTop = '5px';
+          video.style.borderRadius = '5px';
           preview.appendChild(video);
         }
       });
@@ -249,38 +294,47 @@
       localStorage.setItem('markers', JSON.stringify(markers));
       renderMarkers();
 
-      document.getElementById('form').style.display = 'none';
+      closeForm();
+    }
+
+    function closeForm() {
+      const form = document.getElementById('form');
+      form.style.display = 'none';
+      // Освобождаем URL объектов в preview
+      const preview = document.getElementById('mediaPreview');
+      preview.querySelectorAll('img,video').forEach((el) => {
+        if (el.src.startsWith('blob:')) URL.revokeObjectURL(el.src);
+      });
+      preview.innerHTML = '';
+      document.getElementById('mediaInput').value = '';
     }
 
     function renderMarkers() {
-      // Удаляем старые
-      leafletMarkers.forEach(m => map.removeLayer(m));
+      leafletMarkers.forEach((m) => map.removeLayer(m));
       leafletMarkers = [];
 
-      const showVisited = document.getElementById('toggleVisited').checked;
-      const showPlanned = document.getElementById('togglePlanned').checked;
-
-      markers.forEach(m => {
-        if ((m.type === 'visited' && !showVisited) || (m.type === 'planned' && !showPlanned)) return;
-
+      markers.forEach((m) => {
         const icon = m.type === 'visited' ? greenIcon : redIcon;
         const marker = L.marker([m.lat, m.lng], { icon }).addTo(map);
 
+        // Создаём содержимое popup с фото/видео
         let mediaHtml = '';
-        (m.media || []).forEach(f => {
-          if(f.type.startsWith('image')) {
-            mediaHtml += `<img src="${f.url}" style="max-width:100px; display:block; margin-top:5px;" />`;
-          } else if(f.type.startsWith('video')) {
-            mediaHtml += `<video src="${f.url}" controls style="max-width:100px; display:block; margin-top:5px;"></video>`;
+        (m.media || []).forEach((f) => {
+          if (f.type.startsWith('image')) {
+            mediaHtml += `<img src="${f.url}" style="max-width:100%; margin-top:5px; border-radius:5px;" />`;
+          } else if (f.type.startsWith('video')) {
+            mediaHtml += `<video src="${f.url}" controls style="max-width:100%; margin-top:5px; border-radius:5px;"></video>`;
           }
         });
 
-        marker.bindPopup(`
+        const popupContent = `
           <b>${m.name}</b><br>
-          ${m.comment ? m.comment + '<br>' : ''}
-          ${m.date ? m.date + '<br>' : ''}
+          ${m.comment ? m.comment.replace(/\n/g, '<br>') + '<br>' : ''}
+          ${m.date ? `Дата: ${m.date}<br>` : ''}
           ${mediaHtml}
-        `);
+        `;
+
+        marker.bindPopup(popupContent);
 
         leafletMarkers.push(marker);
       });
@@ -320,7 +374,7 @@
     const chatMessages = document.getElementById('chatMessages');
     function renderChat() {
       chatMessages.innerHTML = '';
-      chat.forEach(msg => {
+      chat.forEach((msg) => {
         const div = document.createElement('div');
         div.textContent = `[${new Date(msg.time).toLocaleTimeString()}] ${msg.user}: ${msg.text}`;
         chatMessages.appendChild(div);
@@ -342,7 +396,6 @@
     // Инициализация
     renderMarkers();
     renderChat();
-
   </script>
 </body>
 </html>
