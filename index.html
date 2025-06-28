@@ -110,7 +110,7 @@
     <input id="mediaInput" type="file" accept="image/*,video/*" multiple />
     <p id="coordDisplay"></p>
     <p id="addressDisplay"></p>
-    <button onclick="saveMarker()">Сохранить</button>
+    <button id="saveButton">Сохранить</button>
   </div>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -139,6 +139,7 @@
 
     window.onload = () => {
       initMap();
+      document.getElementById('saveButton').addEventListener('click', saveMarker);
     };
 
     function initMap() {
@@ -177,6 +178,11 @@
       const color = document.getElementById('markerColor').value;
       const address = document.getElementById('addressDisplay').textContent;
 
+      if (!placeName || !visitDate) {
+        alert('Пожалуйста, заполните название и дату');
+        return;
+      }
+
       const markerData = {
         uid: currentUser ? currentUser.uid : 'anonymous',
         placeName,
@@ -194,6 +200,12 @@
         const docRef = await db.collection('markers').add(markerData);
         addMarkerToMap({...markerData, id: docRef.id});
         document.getElementById('form').style.display = 'none';
+        document.getElementById('placeName').value = '';
+        document.getElementById('visitDate').value = '';
+        document.getElementById('comment').value = '';
+        document.getElementById('coordDisplay').textContent = '';
+        document.getElementById('addressDisplay').textContent = '';
+        clickedLatLng = null;
       } catch (e) {
         alert('Ошибка сохранения');
         console.error(e);
