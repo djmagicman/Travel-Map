@@ -4,183 +4,148 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Travel Map Social</title>
-<link
-  rel="stylesheet"
-  href="https://unpkg.com/leaflet/dist/leaflet.css"
-/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <style>
-  body,
-  html {
-    margin: 0;
-    padding: 0;
-    height: 100%;
-    font-family: sans-serif;
-  }
-  #map {
+  /* --- Стили бокового меню --- */
+  #sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 220px;
     height: 100vh;
-    width: 100vw;
+    background: #222;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    z-index: 1500;
   }
-  .form-popup,
-  .trip-popup,
-  .auth-popup,
-  .friends-popup,
-  .profile-popup {
+  #sidebar h2 {
+    margin: 0 0 20px 0;
+    font-weight: 600;
+    font-size: 24px;
+  }
+  #sidebar button {
+    background: #444;
+    border: none;
+    color: white;
+    padding: 12px 15px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    font-size: 16px;
+    border-radius: 6px;
+    transition: background-color 0.25s ease;
+    text-align: left;
+  }
+  #sidebar button:hover {
+    background: #666;
+  }
+  #welcomeUser {
+    margin-bottom: 20px;
+    font-weight: 600;
+    font-size: 18px;
+    word-break: break-word;
+  }
+
+  /* Основной контент с отступом слева */
+  #map {
+    margin-left: 220px;
+    height: 100vh;
+    width: calc(100vw - 220px);
+  }
+
+  /* Форма и попапы */
+  .form-popup, .trip-popup, .profile-popup, .friends-popup {
     position: fixed;
     top: 10px;
     left: 50%;
     transform: translateX(-50%);
     background: white;
-    padding: 10px;
+    padding: 15px;
     border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
-    z-index: 10000;
+    box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    z-index: 1600;
     display: none;
     width: 320px;
     max-height: 80vh;
     overflow-y: auto;
   }
-  input,
-  textarea,
-  select,
-  button {
+
+  /* Медиа-превью в карточке метки */
+  #mediaPreview div {
+    position: relative;
+    display: inline-block;
+    margin-right: 5px;
+    margin-top: 5px;
+  }
+  #mediaPreview img,
+  #mediaPreview video {
+    max-width: 100px;
+    max-height: 80px;
+    border-radius: 6px;
+    object-fit: cover;
+  }
+  #mediaPreview button {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    background: rgba(255, 0, 0, 0.8);
+    border: none;
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    line-height: 17px;
+  }
+
+  /* Кнопки формы */
+  input, textarea, select, button {
     display: block;
     margin-top: 8px;
     width: 100%;
     box-sizing: border-box;
-  }
-  .hint,
-  .user-info,
-  .footer-note,
-  .profile-btn,
-  .welcome,
-  .friends-btn,
-  .logout-btn {
-    position: absolute;
-    background: rgba(255, 255, 255, 0.85);
-    padding: 8px 10px;
-    border-radius: 8px;
-    z-index: 1000;
     font-size: 14px;
-    user-select: none;
+    padding: 6px 8px;
   }
-  .hint {
-    top: 10px;
-    right: 10px;
-  }
-  .welcome {
-    top: 10px;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 18px;
-    font-weight: bold;
-    max-width: 60vw;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .user-info {
-    top: 50px;
-    left: 10px;
-    display: none;
-  }
-  .profile-btn {
-    top: 10px;
-    left: 10px;
-    cursor: pointer;
-  }
-  .friends-btn {
-    top: 50px;
-    right: 10px;
-    cursor: pointer;
-  }
-  .logout-btn {
-    top: 90px;
-    right: 10px;
-    cursor: pointer;
-  }
-  .footer-note {
-    bottom: 10px;
-    left: 10px;
-    font-size: 12px;
-  }
-  .media-preview img,
-  .media-preview video {
-    max-width: 100%;
-    margin-top: 5px;
-    display: block;
-    position: relative;
-  }
-  .media-preview div {
-    position: relative;
-    display: inline-block;
-    margin-top: 5px;
-  }
-  .media-preview button {
-    position: absolute;
-    top: 0;
-    right: 0;
-    background: rgba(255, 0, 0, 0.7);
+  button {
+    background-color: #2196f3;
     border: none;
     color: white;
+    border-radius: 4px;
     cursor: pointer;
-    font-size: 14px;
-    padding: 2px 5px;
+    transition: background-color 0.3s ease;
   }
-  .chat-box {
-    position: fixed;
-    bottom: 10px;
-    right: 10px;
-    background: white;
-    width: 250px;
-    height: 300px;
-    border-radius: 10px;
-    box-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
+  button:hover {
+    background-color: #1976d2;
   }
-  .chat-messages {
-    flex: 1;
-    overflow-y: auto;
-    padding: 10px;
-    font-size: 13px;
-  }
-  .chat-input {
-    display: flex;
-    border-top: 1px solid #ccc;
-  }
-  .chat-input input {
-    flex: 1;
-    border: none;
-    padding: 8px;
-  }
-  .chat-input button {
-    border: none;
-    background: #2196f3;
-    color: white;
-    padding: 8px;
-  }
-  .friends-list-item {
-    border-bottom: 1px solid #ddd;
-    padding: 6px 4px;
-    cursor: pointer;
-  }
-  .friends-list-item:hover {
-    background: #f0f0f0;
-  }
-  .disabled-marker {
-    filter: grayscale(70%);
-    cursor: default !important;
+
+  /* Сообщения и заголовки */
+  h3 {
+    margin-top: 0;
   }
 </style>
 </head>
 <body>
+
+<!-- Боковое меню -->
+<div id="sidebar">
+  <div id="welcomeUser">Здравствуйте, гость</div>
+  <button id="profileBtn">Профиль</button>
+  <button id="friendsBtn">Друзья</button>
+  <button id="logoutBtn">Выйти</button>
+</div>
+
+<!-- Карта -->
 <div id="map"></div>
 
-<!-- Форма для добавления/редактирования метки -->
+<!-- Форма добавления/редактирования метки -->
 <div id="form" class="form-popup">
-  <h3>Добавить/Редактировать поездку</h3>
+  <h3>Добавить поездку</h3>
   <input id="placeName" placeholder="Название места" />
   <input id="visitDate" type="date" />
   <textarea id="comment" placeholder="Комментарий"></textarea>
@@ -206,84 +171,31 @@
   <p id="addressDisplay"></p>
   <button onclick="saveMarker()">Сохранить</button>
   <button onclick="deleteMarker()">Удалить</button>
-  <button onclick="closeForm()">Отмена</button>
 </div>
 
-<!-- Окно аутентификации -->
-<div id="authPopup" class="auth-popup">
-  <h3 id="authTitle">Вход</h3>
-  <input id="emailInput" type="email" placeholder="Email" />
-  <input id="passwordInput" type="password" placeholder="Пароль" />
-  <button id="authActionBtn" onclick="authAction()">Войти</button>
-  <p>
-    <a href="#" id="toggleAuthLink" onclick="toggleAuth()"
-      >Нет аккаунта? Зарегистрироваться</a
-    >
-  </p>
-  <p id="authError" style="color:red;"></p>
+<!-- Профиль -->
+<div id="profilePopup" class="profile-popup">
+  <h3 id="profileTitle">Профиль</h3>
+  <div id="profileInfo">Загрузка...</div>
+  <button onclick="closePopup('profilePopup')">Закрыть</button>
 </div>
 
-<!-- Кнопки управления -->
-<div class="welcome" id="welcomeUser">Добро пожаловать!</div>
-<div class="profile-btn" onclick="openProfile()">Профиль</div>
-<div class="friends-btn" onclick="openFriends()">Друзья</div>
-<div class="logout-btn" onclick="logout()">Выйти</div>
-
-<!-- Окно списка друзей -->
+<!-- Друзья -->
 <div id="friendsPopup" class="friends-popup">
   <h3>Друзья</h3>
-  <input
-    id="friendEmailInput"
-    type="email"
-    placeholder="Добавить друга по email"
-  />
-  <button onclick="addFriend()">Добавить друга</button>
-  <div id="friendsList" style="max-height:300px; overflow-y:auto; margin-top:10px;"></div>
-  <button onclick="closeFriends()">Закрыть</button>
+  <input type="text" id="friendEmailInput" placeholder="Введите email друга" />
+  <button id="addFriendBtn">Добавить друга</button>
+  <div id="friendsList">Загрузка...</div>
+  <button onclick="closePopup('friendsPopup')">Закрыть</button>
 </div>
 
-<!-- Окно просмотра профиля друга -->
-<div id="profilePopup" class="profile-popup">
-  <h3 id="profileTitle">Профиль пользователя</h3>
-  <div id="profileInfo"></div>
-  <button id="addFriendBtn" onclick="addFriendFromProfile()" style="display:none;">Добавить в друзья</button>
-  <button onclick="closeProfile()">Закрыть</button>
-</div>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
 
-<script type="module">
-  // Firebase imports
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-  import {
-    getAuth,
-    onAuthStateChanged,
-    signInWithEmailAndPassword,
-    createUserWithEmailAndPassword,
-    signOut,
-  } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-
-  import {
-    getFirestore,
-    doc,
-    setDoc,
-    getDoc,
-    collection,
-    query,
-    where,
-    getDocs,
-    updateDoc,
-    arrayUnion,
-    arrayRemove,
-    addDoc,
-  } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
-
-  import {
-    getStorage,
-    ref,
-    uploadBytes,
-    getDownloadURL,
-  } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-storage.js";
-
-  // Your web app's Firebase configuration
+<script>
+  // Конфиг Firebase - вставь свои данные
   const firebaseConfig = {
     apiKey: "AIzaSyB0c7llONI831LKFmqTIH6393ZD4ZjBOZY",
     authDomain: "travel-map-f3677.firebaseapp.com",
@@ -291,287 +203,175 @@
     storageBucket: "travel-map-f3677.appspot.com",
     messagingSenderId: "692883514599",
     appId: "1:692883514599:web:0b7a71587433e67a85ae42",
-    measurementId: "G-M8L8K1DL29",
+    measurementId: "G-M8L8K1DL29"
   };
 
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
-  const storage = getStorage(app);
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+  const storage = firebase.storage();
 
-  // Global variables
   let map;
-  let markersLayer;
   let currentUser = null;
-  let editingMarker = null; // marker object with Firestore id and Leaflet marker
-  let userMarkers = new Map(); // markerId -> Leaflet marker
-  let friendMarkers = new Map(); // markers from friends or profile view, readonly
+  let markers = {};
+  let currentMarker = null;
+  let uploadedMediaFiles = []; // Файлы для загрузки при сохранении метки
+  let currentEditMarkerId = null;
 
-  // UI Elements
-  const formPopup = document.getElementById("form");
-  const placeNameInput = document.getElementById("placeName");
-  const visitDateInput = document.getElementById("visitDate");
-  const commentInput = document.getElementById("comment");
-  const markerTypeSelect = document.getElementById("markerType");
-  const markerColorSelect = document.getElementById("markerColor");
-  const mediaInput = document.getElementById("mediaInput");
-  const mediaPreview = document.getElementById("mediaPreview");
-  const coordDisplay = document.getElementById("coordDisplay");
-  const addressDisplay = document.getElementById("addressDisplay");
-
-  const authPopup = document.getElementById("authPopup");
-  const authTitle = document.getElementById("authTitle");
-  const emailInput = document.getElementById("emailInput");
-  const passwordInput = document.getElementById("passwordInput");
-  const authActionBtn = document.getElementById("authActionBtn");
-  const toggleAuthLink = document.getElementById("toggleAuthLink");
-  const authError = document.getElementById("authError");
-
-  const welcomeUser = document.getElementById("welcomeUser");
-  const profileBtn = document.querySelector(".profile-btn");
-  const friendsBtn = document.querySelector(".friends-btn");
-  const logoutBtn = document.querySelector(".logout-btn");
-
-  const friendsPopup = document.getElementById("friendsPopup");
-  const friendEmailInput = document.getElementById("friendEmailInput");
-  const friendsListDiv = document.getElementById("friendsList");
-
-  const profilePopup = document.getElementById("profilePopup");
-  const profileTitle = document.getElementById("profileTitle");
-  const profileInfo = document.getElementById("profileInfo");
-  const addFriendBtn = document.getElementById("addFriendBtn");
-
-  // Для переключения формы входа и регистрации
-  let isLogin = true;
-
-  // Для отображения карты другого пользователя (если передан profileUid)
-  let viewingProfileUid = null;
-
-  // --- Инициализация карты Leaflet ---
+  // Инициализация карты
   function initMap() {
-    map = L.map("map").setView([55.751244, 37.618423], 5); // Москва центр
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
+    map = L.map('map').setView([55.7558, 37.6173], 5); // Москва центр по умолчанию
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18,
     }).addTo(map);
 
-    markersLayer = L.layerGroup().addTo(map);
-
-    map.on("click", onMapClick);
+    map.on('click', onMapClick);
   }
 
-  // --- Обработка клика по карте ---
-  async function onMapClick(e) {
-    if (!currentUser || viewingProfileUid) return; // редактируем только свои метки
-
-    editingMarker = null; // новый маркер
-
-    placeNameInput.value = "";
-    visitDateInput.value = "";
-    commentInput.value = "";
-    markerTypeSelect.value = "visited";
-    markerColorSelect.value = "red";
-    mediaInput.value = "";
-    mediaPreview.innerHTML = "";
-    coordDisplay.textContent = `Координаты: ${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(
-      6
-    )}`;
-    addressDisplay.textContent = "Определение адреса...";
-
-    formPopup.style.display = "block";
-
-    // Получим адрес через Nominatim
-    try {
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?lat=${e.latlng.lat}&lon=${e.latlng.lng}&format=json`
-      );
-      const data = await res.json();
-      addressDisplay.textContent = data.display_name || "Адрес не найден";
-    } catch (err) {
-      addressDisplay.textContent = "Ошибка получения адреса";
-    }
-
-    // Сохраняем координаты в форме для дальнейшего сохранения
-    formPopup.dataset.lat = e.latlng.lat;
-    formPopup.dataset.lng = e.latlng.lng;
+  // Обработка клика по карте - показываем форму с координатами
+  function onMapClick(e) {
+    currentEditMarkerId = null;
+    showForm(e.latlng.lat, e.latlng.lng);
   }
 
-  // --- Закрыть форму ---
-  function closeForm() {
-    formPopup.style.display = "none";
-    editingMarker = null;
-  }
+  // Показываем форму добавления метки
+  function showForm(lat, lng, markerData = null) {
+    document.getElementById('form').style.display = 'block';
+    document.getElementById('coordDisplay').textContent = `Широта: ${lat.toFixed(5)}, Долгота: ${lng.toFixed(5)}`;
 
-  // --- Загрузка маркеров текущего пользователя ---
-  async function loadUserMarkers() {
-    if (!currentUser) return;
-    // Очистим текущие маркеры
-    markersLayer.clearLayers();
-    userMarkers.clear();
-
-    // Загрузим метки из Firestore
-    const markersRef = collection(db, "markers");
-    const q = query(markersRef, where("userUid", "==", currentUser.uid));
-    const querySnapshot = await getDocs(q);
-    querySnapshot.forEach((docSnap) => {
-      const data = docSnap.data();
-      const id = docSnap.id;
-      addMarkerToMap(data, id, false);
-    });
-  }
-
-  // --- Добавить метку на карту ---
-  function addMarkerToMap(data, id, isFriend) {
-    const color = data.color || "red";
-    const icon = L.icon({
-      iconUrl: getIconUrlByColor(color),
-      iconSize: [25, 41],
-      iconAnchor: [12, 41],
-      popupAnchor: [1, -34],
-      shadowUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png",
-      shadowSize: [41, 41],
-    });
-
-    const marker = L.marker([data.lat, data.lng], { icon }).addTo(markersLayer);
-
-    let popupContent = `<b>${escapeHtml(data.placeName)}</b><br/>
-    <i>${data.visitDate || ""}</i><br/>
-    <p>${escapeHtml(data.comment || "")}</p>
-    <b>Тип:</b> ${data.type || ""}<br/>`;
-
-    if (data.media && data.media.length > 0) {
-      popupContent += `<div>`;
-      for (const m of data.media) {
-        if (m.type.startsWith("image")) {
-          popupContent += `<img src="${m.url}" alt="Фото" style="max-width:200px; max-height:150px; margin-top:5px; display:block;"/>`;
-        } else if (m.type.startsWith("video")) {
-          popupContent += `<video src="${m.url}" controls style="max-width:200px; max-height:150px; display:block; margin-top:5px;"></video>`;
-        }
-      }
-      popupContent += `</div>`;
-    }
-
-    if (!isFriend) {
-      // Для своих меток — можно редактировать
-      marker.on("click", () => openEditMarker(id, data, marker));
+    // Если редактируем - заполняем поля
+    if(markerData) {
+      currentEditMarkerId = markerData.id;
+      document.getElementById('placeName').value = markerData.placeName || '';
+      document.getElementById('visitDate').value = markerData.visitDate || '';
+      document.getElementById('comment').value = markerData.comment || '';
+      document.getElementById('markerType').value = markerData.type || 'visited';
+      document.getElementById('markerColor').value = markerData.color || 'red';
+      document.getElementById('coordDisplay').textContent = `Широта: ${markerData.lat.toFixed(5)}, Долгота: ${markerData.lng.toFixed(5)}`;
+      document.getElementById('addressDisplay').textContent = markerData.address || '';
+      uploadedMediaFiles = []; // Очистить локальные файлы
+      renderMediaPreview(markerData.media || []);
     } else {
-      // Для чужих меток — disable marker cursor
-      marker.getElement().classList.add("disabled-marker");
+      currentEditMarkerId = null;
+      document.getElementById('placeName').value = '';
+      document.getElementById('visitDate').value = '';
+      document.getElementById('comment').value = '';
+      document.getElementById('markerType').value = 'visited';
+      document.getElementById('markerColor').value = 'red';
+      document.getElementById('addressDisplay').textContent = '';
+      uploadedMediaFiles = [];
+      document.getElementById('mediaPreview').innerHTML = '';
     }
-
-    marker.bindPopup(popupContent);
-
-    if (isFriend) friendMarkers.set(id, marker);
-    else userMarkers.set(id, marker);
   }
 
-  function getIconUrlByColor(color) {
-    // Возьмём цвет из https://leafletjs.com/examples/custom-icons/
-    // Чтобы не усложнять, используем базовый с красным
-    const base = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-";
-    const colors = {
-      red: "red.png",
-      green: "green.png",
-      blue: "blue.png",
-      yellow: "yellow.png",
-      purple: "violet.png",
-      orange: "orange.png",
-      brown: "brown.png",
-      pink: "pink.png",
-      gray: "grey.png",
-      black: "black.png",
-    };
-    return colors[color] ? base + colors[color] : base + "red.png";
+  // Скрыть форму
+  function closeForm() {
+    document.getElementById('form').style.display = 'none';
+    currentEditMarkerId = null;
+    uploadedMediaFiles = [];
   }
 
-  // --- Открыть редактирование метки ---
-  function openEditMarker(id, data, marker) {
-    if (viewingProfileUid) return; // нельзя редактировать чужие
+  // Обработка выбора файлов (картинки и видео)
+  document.getElementById('mediaInput').addEventListener('change', function(e) {
+    const files = Array.from(e.target.files);
+    uploadedMediaFiles = uploadedMediaFiles.concat(files);
+    renderMediaPreview(null, uploadedMediaFiles);
+    e.target.value = '';
+  });
 
-    editingMarker = { id, marker };
+  // Рендерим превью медиа (можно передать ссылки из Firestore или новые файлы)
+  function renderMediaPreview(existingMedia = null, newFiles = null) {
+    const container = document.getElementById('mediaPreview');
+    container.innerHTML = '';
 
-    placeNameInput.value = data.placeName || "";
-    visitDateInput.value = data.visitDate || "";
-    commentInput.value = data.comment || "";
-    markerTypeSelect.value = data.type || "visited";
-    markerColorSelect.value = data.color || "red";
-    coordDisplay.textContent = `Координаты: ${data.lat.toFixed(6)}, ${data.lng.toFixed(
-      6
-    )}`;
-    addressDisplay.textContent = data.address || "";
-
-    // Media preview
-    mediaPreview.innerHTML = "";
-    if (data.media && data.media.length > 0) {
-      for (const m of data.media) {
-        const div = document.createElement("div");
-        if (m.type.startsWith("image")) {
-          const img = document.createElement("img");
-          img.src = m.url;
+    if(existingMedia) {
+      existingMedia.forEach((mediaUrl, index) => {
+        const ext = mediaUrl.split('.').pop().toLowerCase();
+        const div = document.createElement('div');
+        if(['mp4','webm','ogg'].includes(ext)) {
+          const video = document.createElement('video');
+          video.src = mediaUrl;
+          video.controls = true;
+          div.appendChild(video);
+        } else {
+          const img = document.createElement('img');
+          img.src = mediaUrl;
           div.appendChild(img);
-        } else if (m.type.startsWith("video")) {
-          const vid = document.createElement("video");
-          vid.src = m.url;
-          vid.controls = true;
-          div.appendChild(vid);
         }
-        // Кнопка удалить медиа
-        const btn = document.createElement("button");
-        btn.textContent = "X";
-        btn.onclick = () => {
-          const idx = data.media.findIndex((x) => x.url === m.url);
-          if (idx >= 0) {
-            data.media.splice(idx, 1);
-            div.remove();
-          }
-        };
-        div.appendChild(btn);
-        mediaPreview.appendChild(div);
-      }
+        // Кнопка удалить из существующих (реализовать по желанию)
+        // Для простоты не даём удалять уже загруженные с сервера файлы сейчас
+        container.appendChild(div);
+      });
     }
 
-    formPopup.style.display = "block";
-
-    // Сохраняем координаты
-    formPopup.dataset.lat = data.lat;
-    formPopup.dataset.lng = data.lng;
+    if(newFiles) {
+      newFiles.forEach((file, index) => {
+        const div = document.createElement('div');
+        if(file.type.startsWith('video/')) {
+          const video = document.createElement('video');
+          video.controls = true;
+          video.src = URL.createObjectURL(file);
+          div.appendChild(video);
+        } else if(file.type.startsWith('image/')) {
+          const img = document.createElement('img');
+          img.src = URL.createObjectURL(file);
+          div.appendChild(img);
+        }
+        // Кнопка удаления файла из очереди загрузки
+        const btnDel = document.createElement('button');
+        btnDel.textContent = '×';
+        btnDel.onclick = () => {
+          uploadedMediaFiles.splice(index,1);
+          renderMediaPreview(null, uploadedMediaFiles);
+        };
+        div.appendChild(btnDel);
+        container.appendChild(div);
+      });
+    }
   }
 
-  // --- Сохранение метки ---
+  // Сохраняем метку с загрузкой медиа в Storage
   async function saveMarker() {
-    if (!currentUser) {
-      alert("Сначала войдите в систему");
+    const placeName = document.getElementById('placeName').value.trim();
+    const visitDate = document.getElementById('visitDate').value;
+    const comment = document.getElementById('comment').value.trim();
+    const type = document.getElementById('markerType').value;
+    const color = document.getElementById('markerColor').value;
+
+    if(!placeName) {
+      alert('Введите название места');
       return;
     }
 
-    const placeName = placeNameInput.value.trim();
-    if (!placeName) {
-      alert("Введите название места");
+    // Координаты берём из текущей формы
+    const coordsText = document.getElementById('coordDisplay').textContent;
+    const match = coordsText.match(/Широта: ([\d.-]+), Долгота: ([\d.-]+)/);
+    if(!match) {
+      alert('Неверные координаты');
       return;
     }
+    const lat = parseFloat(match[1]);
+    const lng = parseFloat(match[2]);
 
-    const visitDate = visitDateInput.value;
-    const comment = commentInput.value.trim();
-    const type = markerTypeSelect.value;
-    const color = markerColorSelect.value;
-    const lat = parseFloat(formPopup.dataset.lat);
-    const lng = parseFloat(formPopup.dataset.lng);
-
-    // Загружаем файлы в Storage (если есть)
-    const files = mediaInput.files;
-    let media = editingMarker && editingMarker.media ? editingMarker.media : [];
-
-    if (files.length > 0) {
-      for (const file of files) {
-        const fileRef = ref(storage, `media/${currentUser.uid}/${Date.now()}_${file.name}`);
-        await uploadBytes(fileRef, file);
-        const url = await getDownloadURL(fileRef);
-        media.push({ url, type: file.type });
+    // Загрузка медиафайлов в Storage и получение URL
+    const mediaUrls = [];
+    for(let i=0; i<uploadedMediaFiles.length; i++) {
+      const file = uploadedMediaFiles[i];
+      const storageRef = storage.ref();
+      const fileRef = storageRef.child(`users/${currentUser.uid}/media/${Date.now()}_${file.name}`);
+      try {
+        await fileRef.put(file);
+        const url = await fileRef.getDownloadURL();
+        mediaUrls.push(url);
+      } catch (e) {
+        console.error('Ошибка загрузки файла', e);
+        alert('Ошибка загрузки медиафайлов');
+        return;
       }
     }
 
     const markerData = {
-      userUid: currentUser.uid,
+      uid: currentUser.uid,
       placeName,
       visitDate,
       comment,
@@ -579,452 +379,238 @@
       color,
       lat,
       lng,
-      media,
-      address: addressDisplay.textContent,
-      updatedAt: new Date().toISOString(),
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      media: mediaUrls,
+      address: document.getElementById('addressDisplay').textContent || ''
     };
 
-    if (editingMarker && editingMarker.id) {
-      // Обновляем существующий
-      const markerDocRef = doc(db, "markers", editingMarker.id);
-      await setDoc(markerDocRef, markerData);
-    } else {
-      // Новый маркер
-      const markersRef = collection(db, "markers");
-      await addDoc(markersRef, markerData);
-    }
-
-    closeForm();
-    await loadUserMarkers();
-  }
-
-  // --- Удаление метки ---
-  async function deleteMarker() {
-    if (!editingMarker || !editingMarker.id) {
+    try {
+      if(currentEditMarkerId) {
+        // Обновление существующей метки
+        await db.collection('markers').doc(currentEditMarkerId).update(markerData);
+      } else {
+        // Создание новой метки
+        await db.collection('markers').add(markerData);
+      }
+      alert('Поездка сохранена');
       closeForm();
-      return;
+      loadMarkers(); // Обновить маркеры на карте
+    } catch(e) {
+      console.error('Ошибка сохранения метки', e);
+      alert('Ошибка сохранения');
     }
-    const markerDocRef = doc(db, "markers", editingMarker.id);
-    await setDoc(markerDocRef, { deleted: true }, { merge: true });
-    closeForm();
-    await loadUserMarkers();
   }
 
-  // --- Вход / регистрация ---
-  async function authAction() {
-    const email = emailInput.value.trim();
-    const password = passwordInput.value.trim();
-    authError.textContent = "";
-
-    if (!email || !password) {
-      authError.textContent = "Введите email и пароль";
+  // Удаление метки
+  async function deleteMarker() {
+    if(!currentEditMarkerId) {
+      alert('Нечего удалять');
       return;
     }
+    if(!confirm('Вы действительно хотите удалить эту поездку?')) return;
 
     try {
-      if (isLogin) {
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        currentUser = userCredential.user;
+      await db.collection('markers').doc(currentEditMarkerId).delete();
+      alert('Поездка удалена');
+      closeForm();
+      loadMarkers();
+    } catch(e) {
+      console.error('Ошибка удаления', e);
+      alert('Ошибка удаления');
+    }
+  }
+
+  // Загрузка меток из Firestore и отображение на карте
+  async function loadMarkers() {
+    // Удаляем старые маркеры
+    Object.values(markers).forEach(m => map.removeLayer(m));
+    markers = {};
+
+    try {
+      const snapshot = await db.collection('markers').where('uid', '==', currentUser.uid).get();
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        data.id = doc.id;
+        addMarkerToMap(data);
+      });
+    } catch(e) {
+      console.error('Ошибка загрузки меток', e);
+    }
+  }
+
+  // Добавление одного маркера на карту
+  function addMarkerToMap(data) {
+    const icon = L.circleMarker([data.lat, data.lng], {
+      color: data.color,
+      radius: 10,
+      fillOpacity: 0.8
+    });
+
+    const popupContent = document.createElement('div');
+    popupContent.innerHTML = `<strong>${data.placeName}</strong><br>
+      Дата: ${data.visitDate || '-'}<br>
+      Комментарий: ${data.comment || '-'}<br>`;
+
+    // Медиа галерея
+    if(data.media && data.media.length > 0) {
+      const mediaDiv = document.createElement('div');
+      mediaDiv.style.marginTop = '5px';
+
+      data.media.forEach(url => {
+        const ext = url.split('.').pop().toLowerCase();
+        if(['mp4','webm','ogg'].includes(ext)) {
+          const video = document.createElement('video');
+          video.src = url;
+          video.controls = true;
+          video.style.maxWidth = '150px';
+          video.style.marginRight = '5px';
+          mediaDiv.appendChild(video);
+        } else {
+          const img = document.createElement('img');
+          img.src = url;
+          img.style.maxWidth = '150px';
+          img.style.marginRight = '5px';
+          mediaDiv.appendChild(img);
+        }
+      });
+      popupContent.appendChild(mediaDiv);
+    }
+
+    popupContent.style.maxWidth = '250px';
+
+    icon.bindPopup(popupContent);
+
+    icon.on('click', () => {
+      showForm(data.lat, data.lng, data);
+    });
+
+    icon.addTo(map);
+    markers[data.id] = icon;
+  }
+
+  // Получение адреса по координатам (обратный геокодинг)
+  async function fetchAddress(lat, lng) {
+    try {
+      const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`);
+      const data = await response.json();
+      if(data.display_name) {
+        document.getElementById('addressDisplay').textContent = data.display_name;
       } else {
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        currentUser = userCredential.user;
+        document.getElementById('addressDisplay').textContent = '';
       }
-      authPopup.style.display = "none";
-      welcomeUser.textContent = `Здравствуйте, ${currentUser.email}`;
-      await loadUserMarkers();
-    } catch (error) {
-      authError.textContent = error.message;
+    } catch(e) {
+      document.getElementById('addressDisplay').textContent = '';
     }
   }
 
-  // --- Переключение формы входа/регистрации ---
-  function toggleAuth() {
-    isLogin = !isLogin;
-    authTitle.textContent = isLogin ? "Вход" : "Регистрация";
-    authActionBtn.textContent = isLogin ? "Войти" : "Зарегистрироваться";
-    toggleAuthLink.textContent = isLogin ? "Создать аккаунт" : "Уже есть аккаунт?";
-    authError.textContent = "";
+  // При показе формы вызываем fetchAddress
+  function showForm(lat, lng, markerData = null) {
+    document.getElementById('form').style.display = 'block';
+    document.getElementById('coordDisplay').textContent = `Широта: ${lat.toFixed(5)}, Долгота: ${lng.toFixed(5)}`;
+    if(markerData) {
+      currentEditMarkerId = markerData.id;
+      document.getElementById('placeName').value = markerData.placeName || '';
+      document.getElementById('visitDate').value = markerData.visitDate || '';
+      document.getElementById('comment').value = markerData.comment || '';
+      document.getElementById('markerType').value = markerData.type || 'visited';
+      document.getElementById('markerColor').value = markerData.color || 'red';
+      renderMediaPreview(markerData.media || [], null);
+      document.getElementById('addressDisplay').textContent = markerData.address || '';
+    } else {
+      currentEditMarkerId = null;
+      document.getElementById('placeName').value = '';
+      document.getElementById('visitDate').value = '';
+      document.getElementById('comment').value = '';
+      document.getElementById('markerType').value = 'visited';
+      document.getElementById('markerColor').value = 'red';
+      document.getElementById('addressDisplay').textContent = '';
+      uploadedMediaFiles = [];
+      document.getElementById('mediaPreview').innerHTML = '';
+      fetchAddress(lat, lng);
+    }
   }
 
-  // --- Выход ---
-  async function logout() {
-    await signOut(auth);
-    currentUser = null;
-    welcomeUser.textContent = "";
-    markersLayer.clearLayers();
-    userMarkers.clear();
+  // Профиль и друзья (пустышки, можешь расширять)
+  document.getElementById('profileBtn').onclick = () => {
+    if(!currentUser) { alert('Войдите в систему'); return; }
+    document.getElementById('profileInfo').textContent = `Email: ${currentUser.email || 'неизвестно'}\nUID: ${currentUser.uid}`;
+    document.getElementById('profilePopup').style.display = 'block';
+  };
+  document.getElementById('friendsBtn').onclick = () => {
+    if(!currentUser) { alert('Войдите в систему'); return; }
+    document.getElementById('friendsPopup').style.display = 'block';
+    loadFriends();
+  };
+  document.getElementById('logoutBtn').onclick = () => {
+    auth.signOut();
+  };
+
+  function closePopup(id) {
+    document.getElementById(id).style.display = 'none';
   }
 
-  // --- Добавление друга по email ---
-  async function addFriend() {
-    if (!currentUser) return;
-    const friendEmail = friendEmailInput.value.trim().toLowerCase();
-    if (!friendEmail) return alert("Введите email друга");
-
-    // Найдем пользователя по email
-    const usersRef = collection(db, "users");
-    const q = query(usersRef, where("email", "==", friendEmail));
-    const querySnapshot = await getDocs(q);
-    if (querySnapshot.empty) {
-      return alert("Пользователь не найден");
-    }
-    const friendDoc = querySnapshot.docs[0];
-    const friendUid = friendDoc.id;
-
-    if (friendUid === currentUser.uid) {
-      return alert("Нельзя добавить себя");
-    }
-
-    // Добавим в друзья у текущего пользователя
-    const userDocRef = doc(db, "users", currentUser.uid);
-    await updateDoc(userDocRef, {
-      friends: arrayUnion(friendUid),
-    });
-
-    alert("Друг добавлен");
-    friendEmailInput.value = "";
-    await loadFriendsList();
-  }
-
-  // --- Загрузка списка друзей ---
-  async function loadFriendsList() {
-    if (!currentUser) return;
-    friendsListDiv.innerHTML = "";
-
-    const userDocRef = doc(db, "users", currentUser.uid);
-    const userDocSnap = await getDoc(userDocRef);
-    if (!userDocSnap.exists()) return;
-
-    const data = userDocSnap.data();
-    if (!data.friends || data.friends.length === 0) {
-      friendsListDiv.textContent = "Нет друзей";
-      return;
-    }
-
-    // Загрузим данные друзей
-    for (const friendUid of data.friends) {
-      const friendDocRef = doc(db, "users", friendUid);
-      const friendDocSnap = await getDoc(friendDocRef);
-      if (friendDocSnap.exists()) {
-        const friendData = friendDocSnap.data();
-        const friendEmail = friendData.email || "без email";
-
-        const friendDiv = document.createElement("div");
-        friendDiv.textContent = friendEmail;
-
-        // Кнопка просмотра профиля
-        const viewBtn = document.createElement("button");
-        viewBtn.textContent = "Профиль";
-        viewBtn.onclick = () => viewProfile(friendUid);
-        friendDiv.appendChild(viewBtn);
-
-        // Кнопка удаления из друзей
-        const removeBtn = document.createElement("button");
-        removeBtn.textContent = "Удалить";
-        removeBtn.onclick = async () => {
-          await removeFriend(friendUid);
-          await loadFriendsList();
-        };
-        friendDiv.appendChild(removeBtn);
-
-        friendsListDiv.appendChild(friendDiv);
+  // Друзья - пример простой реализации
+  async function loadFriends() {
+    const list = document.getElementById('friendsList');
+    list.innerHTML = '';
+    try {
+      const friendsSnapshot = await db.collection('friends').doc(currentUser.uid).collection('list').get();
+      if(friendsSnapshot.empty) {
+        list.textContent = 'Список друзей пуст';
+        return;
       }
+      friendsSnapshot.forEach(doc => {
+        const friend = doc.data();
+        const div = document.createElement('div');
+        div.textContent = friend.email || 'неизвестный друг';
+        list.appendChild(div);
+      });
+    } catch(e) {
+      list.textContent = 'Ошибка загрузки друзей';
+      console.error(e);
     }
   }
 
-  // --- Удаление друга ---
-  async function removeFriend(friendUid) {
-    if (!currentUser) return;
-    const userDocRef = doc(db, "users", currentUser.uid);
-    await updateDoc(userDocRef, {
-      friends: arrayRemove(friendUid),
-    });
-    alert("Друг удалён");
-  }
+  // При добавлении друга
+  document.getElementById('addFriendBtn').onclick = async () => {
+    const email = document.getElementById('friendEmailInput').value.trim();
+    if(!email) return alert('Введите email друга');
 
-  // --- Просмотр профиля друга ---
-  async function viewProfile(uid) {
-    viewingProfileUid = uid;
-    profilePopup.style.display = "block";
-    profileTitle.textContent = "Профиль пользователя";
-
-    // Загрузим данные пользователя
-    const userDocRef = doc(db, "users", uid);
-    const userDocSnap = await getDoc(userDocRef);
-    if (!userDocSnap.exists()) {
-      profileInfo.textContent = "Пользователь не найден";
-      return;
+    try {
+      // Поиск пользователя по email
+      const userQuery = await db.collection('users').where('email', '==', email).get();
+      if(userQuery.empty) {
+        alert('Пользователь не найден');
+        return;
+      }
+      const friendUser = userQuery.docs[0];
+      await db.collection('friends').doc(currentUser.uid).collection('list').doc(friendUser.id).set({email});
+      alert('Друг добавлен');
+      loadFriends();
+    } catch(e) {
+      console.error(e);
+      alert('Ошибка добавления друга');
     }
-    const data = userDocSnap.data();
-    profileInfo.textContent = `Email: ${data.email || "нет email"}`;
+  };
 
-    // Загрузим метки пользователя
-    markersLayer.clearLayers();
-    friendMarkers.clear();
-    const markersRef = collection(db, "markers");
-    const q = query(markersRef, where("userUid", "==", uid));
-    const querySnapshot = await getDocs(q);
-    querySnapshot.forEach((docSnap) => {
-      const data = docSnap.data();
-      const id = docSnap.id;
-      addMarkerToMap(data, id, true);
-    });
-  }
-
-  // --- Закрыть профиль ---
-  function closeProfile() {
-    profilePopup.style.display = "none";
-    viewingProfileUid = null;
-    markersLayer.clearLayers();
-    friendMarkers.clear();
-    if (currentUser) {
-      loadUserMarkers();
+  // Авторизация с проверкой
+  auth.onAuthStateChanged(async user => {
+    if(user) {
+      currentUser = user;
+      document.getElementById('welcomeUser').textContent = `Здравствуйте, ${user.email || 'пользователь'}`;
+      loadMarkers();
+    } else {
+      currentUser = null;
+      document.getElementById('welcomeUser').textContent = 'Здравствуйте, гость';
+      Object.values(markers).forEach(m => map.removeLayer(m));
+      markers = {};
     }
-  }
-
-  // --- Утилиты ---
-  function escapeHtml(text) {
-    if (!text) return "";
-    return text
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;");
-  }
-
-  // --- События UI ---
-  document
-    .getElementById("saveBtn")
-    .addEventListener("click", async (e) => {
-      e.preventDefault();
-      await saveMarker();
-    });
-
-  document.getElementById("cancelBtn").addEventListener("click", (e) => {
-    e.preventDefault();
-    closeForm();
   });
 
-  document.getElementById("deleteBtn").addEventListener("click", async (e) => {
-    e.preventDefault();
-    await deleteMarker();
-  });
-
-  document.getElementById("authActionBtn").addEventListener("click", async (e) => {
-    e.preventDefault();
-    await authAction();
-  });
-
-  toggleAuthLink.addEventListener("click", (e) => {
-    e.preventDefault();
-    toggleAuth();
-  });
-
-  logoutBtn.addEventListener("click", async () => {
-    await logout();
-  });
-
-  profileBtn.addEventListener("click", () => {
-    if (!currentUser) {
-      alert("Сначала войдите");
-      return;
-    }
-    profilePopup.style.display = "block";
-    profileTitle.textContent = "Ваш профиль";
-    viewProfile(currentUser.uid);
-  });
-
-  friendsBtn.addEventListener("click", () => {
-    if (!currentUser) {
-      alert("Сначала войдите");
-      return;
-    }
-    friendsPopup.style.display = "block";
-    loadFriendsList();
-  });
-
-  addFriendBtn.addEventListener("click", async () => {
-    await addFriend();
-  });
-
-  // --- Инициализация ---
+  // Инициализация
   window.onload = () => {
     initMap();
-
-    // Проверим авторизацию
-    auth.onAuthStateChanged(async (user) => {
-      if (user) {
-        currentUser = user;
-        welcomeUser.textContent = `Здравствуйте, ${currentUser.email}`;
-        await loadUserMarkers();
-
-        // Ensure user document exists
-        const userDocRef = doc(db, "users", currentUser.uid);
-        const userDocSnap = await getDoc(userDocRef);
-        if (!userDocSnap.exists()) {
-          await setDoc(userDocRef, { email: currentUser.email, friends: [] });
-        }
-      } else {
-        currentUser = null;
-        welcomeUser.textContent = "";
-        markersLayer.clearLayers();
-        userMarkers.clear();
-      }
-    });
   };
 </script>
-
-<style>
-  body,
-  html {
-    height: 100%;
-    margin: 0;
-    font-family: Arial, sans-serif;
-  }
-
-  #map {
-    width: 100%;
-    height: 80vh;
-  }
-
-  #form,
-  #authPopup,
-  #profilePopup,
-  #friendsPopup {
-    position: fixed;
-    top: 10%;
-    left: 50%;
-    transform: translate(-50%, 0);
-    background: white;
-    padding: 15px;
-    border: 1px solid #ccc;
-    z-index: 1000;
-    max-width: 400px;
-    display: none;
-  }
-
-  #form input,
-  #form select,
-  #form textarea,
-  #authPopup input {
-    width: 100%;
-    margin-bottom: 10px;
-    padding: 6px;
-    box-sizing: border-box;
-  }
-
-  #form textarea {
-    resize: vertical;
-  }
-
-  .disabled-marker {
-    cursor: default !important;
-  }
-
-  #welcomeUser {
-    padding: 5px 10px;
-  }
-
-  .profile-btn,
-  .friends-btn,
-  .logout-btn {
-    margin: 5px;
-    padding: 6px 12px;
-    cursor: pointer;
-  }
-
-  #friendsList div {
-    margin-bottom: 5px;
-  }
-
-  #friendsList button {
-    margin-left: 10px;
-  }
-
-  #mediaPreview div {
-    position: relative;
-    display: inline-block;
-    margin-right: 5px;
-  }
-
-  #mediaPreview button {
-    position: absolute;
-    top: 0;
-    right: 0;
-    background: rgba(255, 0, 0, 0.7);
-    border: none;
-    color: white;
-    cursor: pointer;
-  }
-
-  #mediaPreview img,
-  #mediaPreview video {
-    max-width: 100px;
-    max-height: 80px;
-    display: block;
-  }
-</style>
-
-<body>
-  <div id="welcomeUser"></div>
-  <button class="profile-btn">Профиль</button>
-  <button class="friends-btn">Друзья</button>
-  <button class="logout-btn">Выйти</button>
-  <div id="map"></div>
-
-  <div id="form">
-    <h3>Добавить / Редактировать метку</h3>
-    <input id="placeName" placeholder="Название места" />
-    <input id="visitDate" type="date" />
-    <textarea id="comment" placeholder="Комментарий"></textarea>
-    <select id="markerType">
-      <option value="visited">Посещено</option>
-      <option value="wantToVisit">Хочу посетить</option>
-      <option value="lived">Жил здесь</option>
-    </select>
-    <select id="markerColor">
-      <option value="red">Красный</option>
-      <option value="green">Зеленый</option>
-      <option value="blue">Синий</option>
-      <option value="yellow">Желтый</option>
-      <option value="purple">Фиолетовый</option>
-      <option value="orange">Оранжевый</option>
-      <option value="brown">Коричневый</option>
-      <option value="pink">Розовый</option>
-      <option value="gray">Серый</option>
-      <option value="black">Черный</option>
-    </select>
-    <input id="mediaInput" type="file" multiple accept="image/*,video/*" />
-    <div id="mediaPreview"></div>
-    <div id="coordDisplay"></div>
-    <div id="addressDisplay"></div>
-    <button id="saveBtn">Сохранить</button>
-    <button id="cancelBtn">Отмена</button>
-    <button id="deleteBtn">Удалить</button>
-  </div>
-
-  <div id="authPopup">
-    <h3 id="authTitle">Вход</h3>
-    <input id="emailInput" placeholder="Email" type="email" />
-    <input id="passwordInput" placeholder="Пароль" type="password" />
-    <div id="authError" style="color: red;"></div>
-    <button id="authActionBtn">Войти</button>
-    <a href="#" id="toggleAuthLink">Создать аккаунт</a>
-  </div>
-
-  <div id="profilePopup">
-    <h3 id="profileTitle">Профиль</h3>
-    <div id="profileInfo"></div>
-    <button onclick="closeProfile()">Закрыть</button>
-  </div>
-
-  <div id="friendsPopup" style="display:none; position: fixed; top:10%; left:50%; transform: translate(-50%,0); background:white; border:1px solid #ccc; padding:15px; z-index:1000; max-width: 400px;">
-    <h3>Друзья</h3>
-    <input id="friendEmailInput" placeholder="Email друга" type="email" />
-    <button id="addFriendBtn">Добавить друга</button>
-    <div id="friendsList"></div>
-    <button onclick="document.getElementById('friendsPopup').style.display='none'">Закрыть</button>
-  </div>
 </body>
 </html>
