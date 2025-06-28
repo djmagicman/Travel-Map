@@ -69,7 +69,7 @@
       border-radius: 8px;
       z-index: 1000;
     }
-    .marker-toggle label { font-size: 14px; }
+    .marker-toggle label { font-size: 14px; display: block; }
   </style>
 </head>
 <body>
@@ -145,8 +145,9 @@
     });
 
     document.addEventListener('click', function(e) {
-      if (!document.getElementById('form').contains(e.target) && !e.target.closest('.leaflet-container')) {
-        document.getElementById('form').style.display = 'none';
+      const form = document.getElementById('form');
+      if (form.style.display === 'block' && !form.contains(e.target) && !e.target.closest('.leaflet-container')) {
+        form.style.display = 'none';
       }
     });
 
