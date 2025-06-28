@@ -60,12 +60,26 @@
     }
     .chat-input input { flex: 1; border: none; padding: 8px; }
     .chat-input button { border: none; background: #2196f3; color: white; padding: 8px; }
+    .marker-toggle {
+      position: absolute;
+      top: 90px;
+      left: 10px;
+      background: rgba(255,255,255,0.8);
+      padding: 6px 10px;
+      border-radius: 8px;
+      z-index: 1000;
+    }
+    .marker-toggle label { font-size: 14px; }
   </style>
 </head>
 <body>
   <div id="map"></div>
   <div class="hint">🖱️ Кликни по карте, чтобы создать поездку</div>
   <div class="profile-btn" onclick="toggleProfile()">👤 Профиль</div>
+  <div class="marker-toggle">
+    <label><input type="checkbox" id="toggleVisited" checked /> Был</label>
+    <label><input type="checkbox" id="togglePlanned" checked /> Планирую</label>
+  </div>
   <div class="form-popup" id="form">
     <input type="text" id="placeName" placeholder="Название места" />
     <input type="date" id="visitDate" />
@@ -104,8 +118,11 @@
 
     let markers = JSON.parse(localStorage.getItem('markers')) || [];
     let chat = JSON.parse(localStorage.getItem('chat')) || [];
-
     let currentLatLng = null;
+    let leafletMarkers = [];
+
+    document.getElementById('toggleVisited').addEventListener('change', renderMarkers);
+    document.getElementById('togglePlanned').addEventListener('change', renderMarkers);
 
     map.on('click', async function(e) {
       currentLatLng = e.latlng;
@@ -148,11 +165,18 @@
     }
 
     function renderMarkers() {
+      leafletMarkers.forEach(m => map.removeLayer(m));
+      leafletMarkers = [];
+      const showVisited = document.getElementById('toggleVisited').checked;
+      const showPlanned = document.getElementById('togglePlanned').checked;
+
       markers.forEach(m => {
+        if ((m.type === 'visited' && !showVisited) || (m.type === 'planned' && !showPlanned)) return;
         const color = m.type === 'visited' ? 'green' : 'blue';
         const marker = L.circleMarker([m.lat, m.lng], { radius: 8, color }).addTo(map);
         const mediaHtml = (m.media || []).map(f => f.type.startsWith('image') ? `<img src="${f.url}" style="max-width:100px"/>` : `<video src="${f.url}" controls style="max-width:100px"></video>`).join('');
         marker.bindPopup(`<b>${m.name}</b><br>${m.comment}<br>${m.date}<br>${mediaHtml}`);
+        leafletMarkers.push(marker);
       });
     }
 
