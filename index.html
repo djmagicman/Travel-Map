@@ -3,12 +3,15 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Простой вход</title>
+<title>Карта после входа</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 <style>
-  body { font-family: Arial, sans-serif; padding: 20px; }
-  #authContainer, #profileContainer { max-width: 300px; margin: auto; }
-  #profileContainer { display: none; }
-  input, button { display: block; width: 100%; margin: 10px 0; padding: 10px; }
+  body, html { margin: 0; padding: 0; height: 100%; font-family: Arial, sans-serif; }
+  #authContainer, #mainContainer { max-width: 400px; margin: 30px auto; }
+  #mainContainer { display: none; height: 80vh; }
+  #map { height: 100%; }
+  input, button { display: block; width: 100%; margin: 10px 0; padding: 10px; font-size: 16px; }
+  #logoutBtn { margin-top: 10px; background: #d9534f; color: white; border: none; cursor: pointer; }
 </style>
 </head>
 <body>
@@ -22,19 +25,21 @@
   <div><a href="#" id="toggleAuth">Нет аккаунта? Зарегистрироваться</a></div>
 </div>
 
-<div id="profileContainer">
-  <h2>Профиль пользователя</h2>
-  <p>Вы вошли как: <span id="userPhone"></span></p>
+<div id="mainContainer">
+  <h2>Добро пожаловать, <span id="userPhone"></span>!</h2>
+  <div id="map"></div>
   <button id="logoutBtn">Выйти</button>
 </div>
 
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script>
-  let isLogin = true;
+  // Пользователи и текущий пользователь из localStorage
   let users = JSON.parse(localStorage.getItem('users') || '[]');
   let currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
 
+  // Элементы страницы
   const authContainer = document.getElementById('authContainer');
-  const profileContainer = document.getElementById('profileContainer');
+  const mainContainer = document.getElementById('mainContainer');
   const authTitle = document.getElementById('authTitle');
   const phoneInput = document.getElementById('phoneInput');
   const passwordInput = document.getElementById('passwordInput');
@@ -44,20 +49,36 @@
   const userPhoneSpan = document.getElementById('userPhone');
   const logoutBtn = document.getElementById('logoutBtn');
 
-  function showProfile() {
+  let isLogin = true; // флаг переключения между входом и регистрацией
+  let map; // переменная для карты Leaflet
+
+  // Показать основной интерфейс (карту и кнопку выхода)
+  function showMain() {
     authContainer.style.display = 'none';
-    profileContainer.style.display = 'block';
+    mainContainer.style.display = 'block';
     userPhoneSpan.textContent = currentUser.phone;
+    initMap();
   }
 
+  // Показать форму авторизации
   function showAuth() {
     authContainer.style.display = 'block';
-    profileContainer.style.display = 'none';
+    mainContainer.style.display = 'none';
     authMessage.textContent = '';
     phoneInput.value = '';
     passwordInput.value = '';
   }
 
+  // Инициализация карты Leaflet
+  function initMap() {
+    if (map) return; // если карта уже создана, не создаём заново
+    map = L.map('map').setView([55.75, 37.62], 5);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+  }
+
+  // Обработчик переключения между входом и регистрацией
   toggleAuth.addEventListener('click', e => {
     e.preventDefault();
     isLogin = !isLogin;
@@ -73,6 +94,7 @@
     authMessage.textContent = '';
   });
 
+  // Обработчик кнопки Войти / Зарегистрироваться
   authBtn.addEventListener('click', () => {
     const phone = phoneInput.value.trim();
     const password = passwordInput.value.trim();
@@ -89,7 +111,7 @@
       if (user) {
         currentUser = user;
         localStorage.setItem('currentUser', JSON.stringify(currentUser));
-        showProfile();
+        showMain();
       } else {
         authMessage.textContent = 'Неверный номер телефона или пароль.';
       }
@@ -104,22 +126,25 @@
       localStorage.setItem('users', JSON.stringify(users));
       currentUser = newUser;
       localStorage.setItem('currentUser', JSON.stringify(currentUser));
-      showProfile();
+      showMain();
     }
   });
 
+  // Кнопка выхода
   logoutBtn.addEventListener('click', () => {
     currentUser = null;
     localStorage.removeItem('currentUser');
     showAuth();
   });
 
-  // При загрузке проверяем, если пользователь в сессии — показываем профиль
-  if (currentUser) {
-    showProfile();
-  } else {
-    showAuth();
-  }
+  // При загрузке проверяем сессию и показываем нужный интерфейс
+  window.addEventListener('load', () => {
+    if (currentUser) {
+      showMain();
+    } else {
+      showAuth();
+    }
+  });
 </script>
 
 </body>
