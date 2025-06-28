@@ -3,23 +3,60 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Travel Map с Firebase Email/Password</title>
+  <title>Travel Map с Firebase и функционалом карты</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <style>
     body, html { margin:0; padding:0; height:100%; font-family: sans-serif; }
     #authContent, #mainContent { padding: 20px; }
-    #mainContent { display: none; }
-    #map { height: 80vh; width: 100vw; }
+    #mainContent { display: none; height: 100vh; }
+    #map { height: 90vh; width: 100vw; }
     form { margin-bottom: 20px; max-width: 300px; }
-    input { width: 100%; padding: 8px; margin: 5px 0; }
-    button { padding: 8px; width: 100%; margin-top: 10px; }
-    #logoutBtn { margin-top: 10px; }
+    input, textarea, select, button { width: 100%; padding: 8px; margin: 5px 0; }
+    button { cursor: pointer; }
+    #logoutBtn { margin-top: 10px; width: auto; padding: 8px 16px; }
     #errorMsg { color: red; margin-top: 10px; }
+    .form-popup {
+      position: fixed;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: white;
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+      z-index: 1000;
+      display: none;
+      width: 320px;
+    }
+    .media-preview img, .media-preview video {
+      max-width: 100%;
+      margin-top: 5px;
+      display: block;
+      position: relative;
+    }
+    .media-preview div {
+      position: relative;
+      display: inline-block;
+      margin-top: 5px;
+      margin-right: 5px;
+    }
+    .media-preview button {
+      position: absolute;
+      top: 0;
+      right: 0;
+      background: rgba(255,0,0,0.7);
+      border: none;
+      color: white;
+      cursor: pointer;
+      font-size: 14px;
+      padding: 2px 5px;
+    }
   </style>
 </head>
 <body>
 
+  <!-- Авторизация -->
   <div id="authContent">
     <h2>Вход</h2>
     <form id="loginForm">
@@ -37,16 +74,57 @@
     <div id="errorMsg"></div>
   </div>
 
+  <!-- Основной контент с картой -->
   <div id="mainContent">
-    <div id="welcomeText"></div>
-    <button id="logoutBtn">Выйти</button>
+    <div style="display:flex; justify-content: space-between; align-items: center;">
+      <div id="welcomeText"></div>
+      <button id="logoutBtn">Выйти</button>
+    </div>
     <div id="map"></div>
+
+    <!-- Форма добавления/редактирования меток -->
+    <div id="form" class="form-popup">
+      <h3>Добавить/Редактировать поездку</h3>
+      <input id="placeName" placeholder="Название места" />
+      <input id="visitDate" type="date" />
+      <textarea id="comment" placeholder="Комментарий"></textarea>
+      <select id="markerType">
+        <option value="visited">Был</option>
+        <option value="planned">Планирую</option>
+      </select>
+      <select id="markerColor">
+        <option value="red">Красный</option>
+        <option value="green">Зеленый</option>
+        <option value="blue">Синий</option>
+        <option value="yellow">Желтый</option>
+        <option value="purple">Фиолетовый</option>
+        <option value="orange">Оранжевый</option>
+        <option value="brown">Коричневый</option>
+        <option value="pink">Розовый</option>
+        <option value="gray">Серый</option>
+        <option value="black">Черный</option>
+      </select>
+      <input id="mediaInput" type="file" multiple accept="image/*,video/*" />
+      <div id="mediaPreview" class="media-preview"></div>
+      <p id="coordDisplay"></p>
+      <p id="addressDisplay"></p>
+      <button onclick="saveMarker()">Сохранить</button>
+      <button onclick="deleteMarker()">Удалить</button>
+      <button onclick="closeForm()" style="background:#ccc; margin-top:8px;">Отмена</button>
+    </div>
   </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
-    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js";
+    import {
+      getAuth,
+      createUserWithEmailAndPassword,
+      signInWithEmailAndPassword,
+      signOut,
+      onAuthStateChanged,
+    } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js";
 
+    // Firebase config — вставь сюда свои данные!
     const firebaseConfig = {
       apiKey: "AIzaSyB0c7llONI831LKFmqTIH6393ZD4ZjBOZY",
       authDomain: "travel-map-f3677.firebaseapp.com",
@@ -59,6 +137,7 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
 
+    // Элементы
     const loginForm = document.getElementById('loginForm');
     const registerForm = document.getElementById('registerForm');
     const logoutBtn = document.getElementById('logoutBtn');
@@ -67,6 +146,7 @@
     const authContent = document.getElementById('authContent');
     const errorMsg = document.getElementById('errorMsg');
 
+    // Авторизация
     loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       errorMsg.textContent = '';
@@ -75,7 +155,7 @@
       try {
         await signInWithEmailAndPassword(auth, email, password);
         loginForm.reset();
-      } catch(e) {
+      } catch (e) {
         errorMsg.textContent = 'Ошибка входа: ' + e.message;
       }
     });
@@ -89,7 +169,7 @@
         await createUserWithEmailAndPassword(auth, email, password);
         alert('Регистрация прошла успешно!');
         registerForm.reset();
-      } catch(e) {
+      } catch (e) {
         errorMsg.textContent = 'Ошибка регистрации: ' + e.message;
       }
     });
@@ -98,16 +178,187 @@
       signOut(auth);
     });
 
-    let mapInitialized = false;
+    // Карта и метки
+    let map, markers = [], leafletMarkers = [], currentEditIndex = null;
 
+    // Загружаем метки из локального хранилища (потом заменим на Firebase DB)
+    function loadMarkers() {
+      const data = localStorage.getItem('markers');
+      markers = data ? JSON.parse(data) : [];
+    }
+
+    // Сохраняем метки в локальное хранилище (потом Firebase)
+    function saveMarkersToStorage() {
+      localStorage.setItem('markers', JSON.stringify(markers));
+    }
+
+    // Создаём кастомную иконку (круглая с острой точкой)
+    function createCustomIcon(color) {
+      return L.divIcon({
+        className: '',
+        html: `<div style="
+          width: 20px; height: 20px;
+          background: ${color};
+          border-radius: 50% 50% 50% 0;
+          transform: rotate(45deg);
+          margin-top: -10px; margin-left: -10px;
+          box-shadow: 0 0 5px rgba(0,0,0,0.5);
+        "></div>`,
+        iconSize: [20, 20],
+        iconAnchor: [10, 20],
+        popupAnchor: [0, -20]
+      });
+    }
+
+    // Отобразить все метки на карте
+    function renderMarkers() {
+      leafletMarkers.forEach(m => map.removeLayer(m));
+      leafletMarkers = [];
+
+      markers.forEach((m, i) => {
+        const icon = createCustomIcon(m.color || 'red');
+        const marker = L.marker([m.lat, m.lng], { icon }).addTo(map);
+        marker.bindPopup(`
+          <b>${m.name}</b><br/>
+          Дата: ${m.date || '-'}<br/>
+          Тип: ${m.type || '-'}<br/>
+          Комментарий: ${m.comment || '-'}
+          <br/>
+          <button onclick="editMarker(${i})">Редактировать</button>
+        `);
+        leafletMarkers.push(marker);
+      });
+    }
+
+    // Переменные формы
+    const form = document.getElementById('form');
+    const placeNameInput = document.getElementById('placeName');
+    const visitDateInput = document.getElementById('visitDate');
+    const commentInput = document.getElementById('comment');
+    const markerTypeInput = document.getElementById('markerType');
+    const markerColorInput = document.getElementById('markerColor');
+    const mediaInput = document.getElementById('mediaInput');
+    const mediaPreview = document.getElementById('mediaPreview');
+    const coordDisplay = document.getElementById('coordDisplay');
+    const addressDisplay = document.getElementById('addressDisplay');
+
+    // Текущие координаты для новой метки
+    let currentCoords = null;
+
+    // Открыть форму для редактирования метки
+    window.editMarker = function(i) {
+      currentEditIndex = i;
+      const m = markers[i];
+      placeNameInput.value = m.name || '';
+      visitDateInput.value = m.date || '';
+      commentInput.value = m.comment || '';
+      markerTypeInput.value = m.type || 'visited';
+      markerColorInput.value = m.color || 'red';
+      currentCoords = { lat: m.lat, lng: m.lng };
+      coordDisplay.textContent = `Координаты: ${m.lat.toFixed(5)}, ${m.lng.toFixed(5)}`;
+      addressDisplay.textContent = m.address || '';
+      mediaPreview.innerHTML = ''; // Можно добавить медиа-превью из m.media, если будет
+      showForm();
+    };
+
+    // Открыть пустую форму для новой метки
+    function openFormAtCoords(latlng) {
+      currentEditIndex = null;
+      placeNameInput.value = '';
+      visitDateInput.value = '';
+      commentInput.value = '';
+      markerTypeInput.value = 'visited';
+      markerColorInput.value = 'red';
+      currentCoords = latlng;
+      coordDisplay.textContent = `Координаты: ${latlng.lat.toFixed(5)}, ${latlng.lng.toFixed(5)}`;
+      addressDisplay.textContent = '';
+      mediaInput.value = '';
+      mediaPreview.innerHTML = '';
+      showForm();
+      // Можно добавить геокодинг адреса по координатам через fetch к стороннему API
+    }
+
+    // Показать форму
+    function showForm() {
+      form.style.display = 'block';
+    }
+    // Скрыть форму
+    window.closeForm = function() {
+      form.style.display = 'none';
+      currentEditIndex = null;
+      currentCoords = null;
+    };
+
+    // Сохранить метку (новую или отредактированную)
+    window.saveMarker = function() {
+      if (!currentCoords) {
+        alert('Выберите точку на карте');
+        return;
+      }
+      const newMarker = {
+        name: placeNameInput.value,
+        date: visitDateInput.value,
+        comment: commentInput.value,
+        type: markerTypeInput.value,
+        color: markerColorInput.value,
+        lat: currentCoords.lat,
+        lng: currentCoords.lng,
+        address: addressDisplay.textContent
+      };
+
+      if (currentEditIndex !== null) {
+        markers[currentEditIndex] = newMarker;
+      } else {
+        markers.push(newMarker);
+      }
+
+      saveMarkersToStorage();
+      renderMarkers();
+      closeForm();
+    };
+
+    // Удалить метку
+    window.deleteMarker = function() {
+      if (currentEditIndex === null) {
+        alert('Нет выбранной метки для удаления');
+        return;
+      }
+      if (confirm('Удалить эту метку?')) {
+        markers.splice(currentEditIndex, 1);
+        saveMarkersToStorage();
+        renderMarkers();
+        closeForm();
+      }
+    };
+
+    // Обработка клика по карте — открываем форму добавления метки
+    function onMapClick(e) {
+      openFormAtCoords(e.latlng);
+    }
+
+    // Инициализация карты
+    function initMap() {
+      map = L.map('map').setView([55.751244, 37.618423], 5);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '© OpenStreetMap'
+      }).addTo(map);
+
+      map.on('click', onMapClick);
+
+      loadMarkers();
+      renderMarkers();
+    }
+
+    // Авторизация и показ контента
     onAuthStateChanged(auth, (user) => {
       if(user) {
         authContent.style.display = 'none';
         mainContent.style.display = 'block';
         welcomeText.textContent = `Добро пожаловать, ${user.email}`;
-        if(!mapInitialized) {
+        if(!map) {
           initMap();
-          mapInitialized = true;
         }
       } else {
         authContent.style.display = 'block';
@@ -116,14 +367,11 @@
       }
     });
 
-    function initMap() {
-      try {
-        window.map = L.map('map').setView([55.751244, 37.618423], 5);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(window.map);
-      } catch (e) {
-        alert('Ошибка инициализации карты: ' + e.message);
-      }
-    }
+    // Добавляем глобальные функции для доступа из popup (popup встроен в leaflet)
+    window.saveMarker = window.saveMarker;
+    window.deleteMarker = window.deleteMarker;
+    window.closeForm = window.closeForm;
+
   </script>
 
 </body>
