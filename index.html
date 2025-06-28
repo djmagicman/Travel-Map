@@ -1,52 +1,121 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Микки Маус Улыбка</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Travel Map Social</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <style>
-    body {
+    body, html {
       margin: 0;
       padding: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      background-color: #f0f0f0;
+      height: 100%;
       font-family: Arial, sans-serif;
     }
-    .mickey {
-      width: 300px;
-      cursor: pointer;
-      transition: transform 0.2s;
+    #map {
+      height: 100vh;
+      width: 100vw;
     }
-    .mickey:hover {
-      transform: scale(1.05);
-    }
-    .smile {
+    .marker-form {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+      z-index: 1000;
       display: none;
-      font-size: 24px;
-      margin-top: 20px;
-      color: #333;
+      width: 300px;
+    }
+    input, textarea, select, button {
+      width: 100%;
+      margin-top: 10px;
+      padding: 8px;
+      font-size: 14px;
+    }
+    button {
+      background: #2196f3;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #1976d2;
     }
   </style>
 </head>
 <body>
-  <div style="text-align: center;">
-    <img id="mickeyImg" class="mickey" src="https://upload.wikimedia.org/wikipedia/en/d/d4/Mickey_Mouse.png" alt="Микки Маус" />
-    <div id="smileText" class="smile">😊 Микки улыбается тебе!</div>
+  <div id="map"></div>
+  <div id="form" class="marker-form">
+    <h3>Добавить метку</h3>
+    <input type="text" id="placeName" placeholder="Название места" required />
+    <input type="date" id="visitDate" />
+    <textarea id="comment" placeholder="Комментарий"></textarea>
+    <select id="markerType">
+      <option value="visited">Был</option>
+      <option value="planned">Планирую</option>
+    </select>
+    <select id="markerColor">
+      <option value="red">Красный</option>
+      <option value="green">Зеленый</option>
+      <option value="blue">Синий</option>
+    </select>
+    <input type="file" id="mediaInput" accept="image/*,video/*" multiple />
+    <div id="mediaPreview"></div>
+    <button onclick="saveMarker()">Сохранить</button>
+    <button onclick="closeForm()">Отмена</button>
   </div>
 
   <script>
-    const mickey = document.getElementById('mickeyImg');
-    const smile = document.getElementById('smileText');
+    let map = L.map('map').setView([55.7558, 37.6173], 5); // Центр Москвы
+    let currentLatLng = null;
 
-    mickey.addEventListener('click', () => {
-      smile.style.display = 'block';
-      setTimeout(() => {
-        smile.style.display = 'none';
-      }, 2000);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18
+    }).addTo(map);
+
+    let markers = [];
+
+    map.on('click', function(e) {
+      currentLatLng = e.latlng;
+      document.getElementById('form').style.display = 'block';
     });
+
+    function closeForm() {
+      document.getElementById('form').style.display = 'none';
+      document.getElementById('placeName').value = '';
+      document.getElementById('visitDate').value = '';
+      document.getElementById('comment').value = '';
+    }
+
+    function saveMarker() {
+      const placeName = document.getElementById('placeName').value;
+      const visitDate = document.getElementById('visitDate').value;
+      const comment = document.getElementById('comment').value;
+      const type = document.getElementById('markerType').value;
+      const color = document.getElementById('markerColor').value;
+
+      if (!placeName || !currentLatLng) {
+        alert('Введите название и выберите точку на карте.');
+        return;
+      }
+
+      const marker = L.circleMarker(currentLatLng, {
+        color: color,
+        radius: 10,
+        fillOpacity: 0.8
+      }).addTo(map);
+
+      marker.bindPopup(
+        `<strong>${placeName}</strong><br>Дата: ${visitDate}<br>Комментарий: ${comment}`
+      );
+
+      markers.push(marker);
+      closeForm();
+    }
   </script>
 </body>
 </html>
