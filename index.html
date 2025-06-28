@@ -130,6 +130,10 @@
     <option value="red">Красный</option>
     <option value="green">Зелёный</option>
     <option value="blue">Синий</option>
+    <option value="yellow">Жёлтый</option>
+    <option value="orange">Оранжевый</option>
+    <option value="purple">Фиолетовый</option>
+    <option value="gray">Серый</option>
   </select>
   <input type="file" id="markerMedia" multiple accept="image/*,video/*" />
   <div id="coordDisplay"></div>
@@ -155,6 +159,7 @@
 
   let currentUser = null;
   let map;
+  let markers = [];
 
   auth.onAuthStateChanged(user => {
     if (user) {
@@ -185,6 +190,7 @@
       maxZoom: 18,
     }).addTo(map);
     map.on('click', onMapClick);
+    loadMarkers();
   }
 
   function onMapClick(e) {
@@ -235,12 +241,26 @@
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
 
-    L.circleMarker([window.currentLatLng.lat, window.currentLatLng.lng], {
+    const marker = L.circleMarker([window.currentLatLng.lat, window.currentLatLng.lng], {
       color: color,
       radius: 8
     }).addTo(map).bindPopup(`<b>${title}</b><br>${comment}`);
+    markers.push(marker);
 
     closePopup('markerPopup');
+  }
+
+  async function loadMarkers() {
+    if (!currentUser) return;
+    const snapshot = await db.collection('markers').where('uid', '==', currentUser.uid).get();
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      const marker = L.circleMarker([data.lat, data.lng], {
+        color: data.color,
+        radius: 8
+      }).addTo(map).bindPopup(`<b>${data.title}</b><br>${data.comment}`);
+      markers.push(marker);
+    });
   }
 
   function closePopup(id) {
