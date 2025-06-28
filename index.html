@@ -27,7 +27,7 @@
       margin-top: 8px;
       width: 100%;
     }
-    .hint, .user-info, .footer-note {
+    .hint, .user-info, .footer-note, .profile-btn {
       position: absolute;
       background: rgba(255,255,255,0.8);
       padding: 8px 10px;
@@ -36,7 +36,8 @@
       font-size: 14px;
     }
     .hint { top: 10px; right: 10px; }
-    .user-info { top: 10px; left: 10px; }
+    .user-info { top: 50px; left: 10px; display: none; }
+    .profile-btn { top: 10px; left: 10px; cursor: pointer; }
     .footer-note { bottom: 10px; left: 10px; font-size: 12px; }
     .media-preview img, .media-preview video { max-width: 100%; margin-top: 5px; }
     .chat-box {
@@ -64,6 +65,7 @@
 <body>
   <div id="map"></div>
   <div class="hint">🖱️ Кликни по карте, чтобы создать поездку</div>
+  <div class="profile-btn" onclick="toggleProfile()">👤 Профиль</div>
   <div class="form-popup" id="form">
     <input type="text" id="placeName" placeholder="Название места" />
     <input type="date" id="visitDate" />
@@ -74,16 +76,11 @@
     </select>
     <input type="file" id="mediaInput" accept="image/*,video/*" multiple />
     <div class="media-preview" id="mediaPreview"></div>
+    <div id="coordDisplay"></div>
+    <div id="addressDisplay"></div>
     <button onclick="saveMarker()">💾 Сохранить</button>
   </div>
-  <div class="trip-popup" id="tripForm">
-    <input type="text" id="tripTitle" placeholder="Название поездки" />
-    <textarea id="tripDesc" placeholder="Описание / цели поездки"></textarea>
-    <input type="date" id="tripDate" />
-    <input type="text" id="tripAuthor" placeholder="Ваше имя" />
-    <button onclick="createTrip()">🚗 Создать поездку</button>
-  </div>
-  <div class="user-info">
+  <div class="user-info" id="profile">
     <b>Профиль</b><br>
     <input type="text" id="username" placeholder="Имя" />
     <input type="number" id="userage" placeholder="Возраст" />
@@ -106,54 +103,34 @@
     }).addTo(map);
 
     let markers = JSON.parse(localStorage.getItem('markers')) || [];
-    let trips = JSON.parse(localStorage.getItem('trips')) || [];
     let chat = JSON.parse(localStorage.getItem('chat')) || [];
 
-    function renderChat() {
-      const box = document.getElementById('chatMessages');
-      box.innerHTML = chat.map(m => `<div><b>${m.name}</b>: ${m.text}</div>`).join('');
-      box.scrollTop = box.scrollHeight;
-    }
+    let currentLatLng = null;
 
-    function sendMessage() {
-      const text = document.getElementById('chatInput').value.trim();
-      const user = document.getElementById('username').value || 'Гость';
-      if (!text) return;
-      chat.push({ name: user, text });
-      localStorage.setItem('chat', JSON.stringify(chat));
-      document.getElementById('chatInput').value = '';
-      renderChat();
-    }
-
-    function createTrip() {
-      const trip = {
-        lat: parseFloat(document.getElementById('tripForm').dataset.lat),
-        lng: parseFloat(document.getElementById('tripForm').dataset.lng),
-        title: document.getElementById('tripTitle').value,
-        desc: document.getElementById('tripDesc').value,
-        date: document.getElementById('tripDate').value,
-        author: document.getElementById('tripAuthor').value
-      };
-      trips.push(trip);
-      localStorage.setItem('trips', JSON.stringify(trips));
-      renderTrips();
-      document.getElementById('tripForm').style.display = 'none';
-    }
-
-    function renderTrips() {
-      trips.forEach(t => {
-        const marker = L.marker([t.lat, t.lng]).addTo(map);
-        marker.bindPopup(`<b>${t.title}</b><br>${t.desc}<br><i>${t.date}</i><br><b>Автор:</b> ${t.author}`);
-      });
-    }
+    map.on('click', async function(e) {
+      currentLatLng = e.latlng;
+      const form = document.getElementById('form');
+      form.style.display = 'block';
+      form.dataset.lat = e.latlng.lat;
+      form.dataset.lng = e.latlng.lng;
+      document.getElementById('placeName').value = '';
+      document.getElementById('visitDate').value = '';
+      document.getElementById('comment').value = '';
+      document.getElementById('mediaInput').value = '';
+      document.getElementById('coordDisplay').textContent = `Координаты: ${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`;
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${e.latlng.lat}&lon=${e.latlng.lng}&format=json`);
+        const data = await res.json();
+        document.getElementById('addressDisplay').textContent = `Адрес: ${data.display_name}`;
+      } catch {
+        document.getElementById('addressDisplay').textContent = 'Адрес не найден';
+      }
+    });
 
     map.on('click', function(e) {
-      const { lat, lng } = e.latlng;
-      const tripForm = document.getElementById('tripForm');
-      tripForm.style.display = 'block';
-      tripForm.dataset.lat = lat;
-      tripForm.dataset.lng = lng;
-      tripForm.querySelectorAll('input, textarea').forEach(el => el.value = '');
+      if (!document.getElementById('form').contains(e.originalEvent.target)) {
+        document.getElementById('form').style.display = 'none';
+      }
     });
 
     function saveMarker() {
@@ -173,9 +150,15 @@
     function renderMarkers() {
       markers.forEach(m => {
         const color = m.type === 'visited' ? 'green' : 'blue';
-        const marker = L.circleMarker([m.lat, m.lng], { radius: 8, color }).addTo(map);
-        marker.bindPopup(`<b>${m.name}</b><br>${m.comment}<br>${m.date}`);
+        const marker = L.circleMarker([m.lat, m.lng], { radius: 8, color, draggable: true }).addTo(map);
+        const mediaHtml = (m.media || []).map(f => f.type.startsWith('image') ? `<img src="${f.url}" style="max-width:100px"/>` : `<video src="${f.url}" controls style="max-width:100px"></video>`).join('');
+        marker.bindPopup(`<b>${m.name}</b><br>${m.comment}<br>${m.date}<br>${mediaHtml}`);
       });
+    }
+
+    function toggleProfile() {
+      const el = document.getElementById('profile');
+      el.style.display = el.style.display === 'none' ? 'block' : 'none';
     }
 
     function saveProfile() {
@@ -183,6 +166,22 @@
       const age = document.getElementById('userage').value;
       const desc = document.getElementById('userdesc').value.trim();
       localStorage.setItem('profile', JSON.stringify({ username, age, desc }));
+    }
+
+    function renderChat() {
+      const box = document.getElementById('chatMessages');
+      box.innerHTML = chat.map(m => `<div><b>${m.name}</b>: ${m.text}</div>`).join('');
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function sendMessage() {
+      const text = document.getElementById('chatInput').value.trim();
+      const user = document.getElementById('username').value || 'Гость';
+      if (!text) return;
+      chat.push({ name: user, text });
+      localStorage.setItem('chat', JSON.stringify(chat));
+      document.getElementById('chatInput').value = '';
+      renderChat();
     }
 
     window.addEventListener('load', () => {
@@ -193,7 +192,6 @@
         document.getElementById('userdesc').value = profile.desc || '';
       }
       renderMarkers();
-      renderTrips();
       renderChat();
     });
   </script>
