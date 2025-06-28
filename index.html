@@ -117,16 +117,6 @@
   <button onclick="signUp()">Зарегистрироваться</button>
 </div>
 
-<!-- Всплывающее окно для путешествий -->
-<div id="routePopup" class="route-popup">
-  <h3>Новое путешествие</h3>
-  <input id="routeName" placeholder="Название путешествия" />
-  <button onclick="startRouteSelection()">Выбрать маршрут</button>
-  <div id="routePoints">Маршрут: не выбран</div>
-  <button onclick="saveRoute()">Сохранить путешествие</button>
-  <button onclick="closePopup('routePopup')">Закрыть</button>
-</div>
-
 <!-- Всплывающее окно добавления метки -->
 <div id="markerPopup" class="form-popup">
   <h3>Новая точка</h3>
@@ -140,42 +130,12 @@
     <option value="red">Красный</option>
     <option value="green">Зелёный</option>
     <option value="blue">Синий</option>
-    <option value="yellow">Жёлтый</option>
-    <option value="purple">Фиолетовый</option>
-    <option value="orange">Оранжевый</option>
-    <option value="brown">Коричневый</option>
-    <option value="pink">Розовый</option>
-    <option value="gray">Серый</option>
-    <option value="black">Чёрный</option>
   </select>
   <input type="file" id="markerMedia" multiple accept="image/*,video/*" />
   <div id="coordDisplay"></div>
   <div id="addressDisplay"></div>
   <button onclick="saveMarker()">Сохранить точку</button>
   <button onclick="closePopup('markerPopup')">Отмена</button>
-</div>
-
-<!-- Всплывающее окно профиля -->
-<div id="profilePopup" class="profile-popup">
-  <h3>Профиль</h3>
-  <input id="profileName" placeholder="Имя" />
-  <input id="profileAge" type="number" placeholder="Возраст" />
-  <textarea id="profileComment" placeholder="Комментарий"></textarea>
-  <input type="file" id="avatarUpload" accept="image/*" />
-  <div id="avatarPreview"></div>
-  <button onclick="saveProfile()">Сохранить профиль</button>
-  <button onclick="closePopup('profilePopup')">Закрыть</button>
-</div>
-
-<!-- Всплывающее окно друзей -->
-<div id="friendsPopup" class="friends-popup">
-  <h3>Друзья</h3>
-  <input type="text" id="friendSearch" placeholder="Имя или Email друга" />
-  <button onclick="searchFriend()">Найти</button>
-  <div id="searchResults"></div>
-  <p>Ссылка на мой профиль: <span id="myProfileLink"></span></p>
-  <div id="friendsList"></div>
-  <button onclick="closePopup('friendsPopup')">Закрыть</button>
 </div>
 
 <script>
@@ -194,6 +154,18 @@
   const storage = firebase.storage();
 
   let currentUser = null;
+  let map;
+
+  auth.onAuthStateChanged(user => {
+    if (user) {
+      currentUser = user;
+      document.getElementById('welcomeUser').textContent = `Здравствуйте, ${user.email}`;
+      document.getElementById('authPopup').style.display = 'none';
+      initMap();
+    } else {
+      document.getElementById('authPopup').style.display = 'block';
+    }
+  });
 
   function signIn() {
     const email = document.getElementById('authEmail').value;
@@ -207,24 +179,11 @@
     auth.createUserWithEmailAndPassword(email, password).catch(e => alert('Ошибка регистрации: ' + e.message));
   }
 
-  auth.onAuthStateChanged(user => {
-    if (user) {
-      currentUser = user;
-      document.getElementById('welcomeUser').textContent = `Здравствуйте, ${user.email}`;
-      document.getElementById('authPopup').style.display = 'none';
-      initMap();
-    } else {
-      document.getElementById('authPopup').style.display = 'block';
-    }
-  });
-
-  let map;
   function initMap() {
     map = L.map('map').setView([55.751244, 37.618423], 5);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 18,
     }).addTo(map);
-
     map.on('click', onMapClick);
   }
 
@@ -232,6 +191,7 @@
     document.getElementById('markerPopup').style.display = 'block';
     document.getElementById('coordDisplay').textContent = `Координаты: ${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`;
     fetchAddress(e.latlng.lat, e.latlng.lng);
+    window.currentLatLng = e.latlng;
   }
 
   async function fetchAddress(lat, lng) {
@@ -242,6 +202,45 @@
     } catch (e) {
       document.getElementById('addressDisplay').textContent = '';
     }
+  }
+
+  async function saveMarker() {
+    if (!currentUser || !window.currentLatLng) return;
+    const title = document.getElementById('markerTitle').value;
+    const comment = document.getElementById('markerComment').value;
+    const type = document.getElementById('markerType').value;
+    const color = document.getElementById('markerColor').value;
+    const address = document.getElementById('addressDisplay').textContent;
+
+    const fileInput = document.getElementById('markerMedia');
+    const mediaUrls = [];
+
+    for (let file of fileInput.files) {
+      const ref = storage.ref(`markers/${currentUser.uid}/${Date.now()}_${file.name}`);
+      await ref.put(file);
+      const url = await ref.getDownloadURL();
+      mediaUrls.push(url);
+    }
+
+    await db.collection('markers').add({
+      uid: currentUser.uid,
+      title,
+      comment,
+      type,
+      color,
+      lat: window.currentLatLng.lat,
+      lng: window.currentLatLng.lng,
+      address,
+      media: mediaUrls,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    L.circleMarker([window.currentLatLng.lat, window.currentLatLng.lng], {
+      color: color,
+      radius: 8
+    }).addTo(map).bindPopup(`<b>${title}</b><br>${comment}`);
+
+    closePopup('markerPopup');
   }
 
   function closePopup(id) {
