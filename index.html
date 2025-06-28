@@ -9,6 +9,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
 <style>
   #sidebar {
     position: fixed;
@@ -117,6 +118,16 @@
   <button onclick="closePopup('routePopup')">Закрыть</button>
 </div>
 
+<!-- Всплывающее окно добавления метки -->
+<div id="markerPopup" class="form-popup">
+  <h3>Новая точка</h3>
+  <input id="markerTitle" placeholder="Название места" />
+  <textarea id="markerComment" placeholder="Комментарий"></textarea>
+  <input type="file" id="markerMedia" multiple accept="image/*,video/*" />
+  <button onclick="saveMarker()">Сохранить точку</button>
+  <button onclick="closePopup('markerPopup')">Отмена</button>
+</div>
+
 <script>
   const firebaseConfig = {
     apiKey: "AIzaSyB0c7llONI831LKFmqTIH6393ZD4ZjBOZY",
@@ -129,12 +140,15 @@
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
   const auth = firebase.auth();
-  let currentUser = null;
+  const storage = firebase.storage();
 
+  let currentUser = null;
   let map;
   let routeSelection = false;
   let routeCoords = [];
   let routeLine = null;
+  let tempMarker = null;
+  let uploadedFiles = [];
 
   document.getElementById('routeBtn').onclick = () => {
     document.getElementById('routePopup').style.display = 'block';
@@ -180,9 +194,47 @@
         document.getElementById('routePoints').textContent = routeCoords.map(p => p.join(',')).join(' -> ');
         drawRouteLine();
       } else {
-        // логика других кликов по карте
+        openMarkerPopup(e.latlng);
       }
     });
+  }
+
+  function openMarkerPopup(latlng) {
+    if (tempMarker) map.removeLayer(tempMarker);
+    tempMarker = L.marker(latlng, { draggable: true }).addTo(map);
+    document.getElementById('markerTitle').value = '';
+    document.getElementById('markerComment').value = '';
+    uploadedFiles = [];
+    document.getElementById('markerMedia').value = '';
+    document.getElementById('markerPopup').style.display = 'block';
+  }
+
+  async function saveMarker() {
+    const title = document.getElementById('markerTitle').value.trim();
+    const comment = document.getElementById('markerComment').value.trim();
+    const files = document.getElementById('markerMedia').files;
+    if (!title || !tempMarker) return alert('Введите название и выберите точку');
+    const mediaUrls = [];
+    for (let file of files) {
+      const ref = storage.ref(`users/${currentUser.uid}/media/${Date.now()}_${file.name}`);
+      await ref.put(file);
+      const url = await ref.getDownloadURL();
+      mediaUrls.push(url);
+    }
+    const data = {
+      uid: currentUser.uid,
+      title,
+      comment,
+      lat: tempMarker.getLatLng().lat,
+      lng: tempMarker.getLatLng().lng,
+      media: mediaUrls,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    await db.collection('markers').add(data);
+    alert('Метка сохранена');
+    map.removeLayer(tempMarker);
+    tempMarker = null;
+    closePopup('markerPopup');
   }
 
   auth.onAuthStateChanged(user => {
