@@ -11,9 +11,9 @@
     #map { height: 100%; }
     .form-popup, .trip-popup {
       position: fixed;
-      top: 50%;
+      top: 10px;
       left: 50%;
-      transform: translate(-50%, -50%);
+      transform: translateX(-50%);
       background: white;
       padding: 10px;
       border-radius: 8px;
@@ -171,11 +171,31 @@
       const showVisited = document.getElementById('toggleVisited').checked;
       const showPlanned = document.getElementById('togglePlanned').checked;
 
-      markers.forEach(m => {
+      markers.forEach((m, i) => {
         if ((m.type === 'visited' && !showVisited) || (m.type === 'planned' && !showPlanned)) return;
-        const color = m.type === 'visited' ? 'green' : 'blue';
-        const marker = L.circleMarker([m.lat, m.lng], { radius: 8, color }).addTo(map);
-        const mediaHtml = (m.media || []).map(f => f.type.startsWith('image') ? `<img src="${f.url}" style="max-width:100px"/>` : `<video src="${f.url}" controls style="max-width:100px"></video>`).join('');
+        const color = m.type === 'visited' ? 'green' : 'red';
+        const icon = L.divIcon({
+          className: '',
+          html: `<div style="width:12px;height:12px;border-radius:50%;background:${color};border:2px solid white;"></div>`,
+          iconSize: [12, 12],
+          iconAnchor: [6, 6]
+        });
+
+        const marker = L.marker([m.lat, m.lng], { icon: icon, draggable: true }).addTo(map);
+
+        marker.on('dragend', function (e) {
+          const newPos = e.target.getLatLng();
+          markers[i].lat = newPos.lat;
+          markers[i].lng = newPos.lng;
+          localStorage.setItem('markers', JSON.stringify(markers));
+        });
+
+        const mediaHtml = (m.media || []).map(f =>
+          f.type.startsWith('image')
+            ? `<img src="${f.url}" style="max-width:100px;margin:4px 0"/>`
+            : `<video src="${f.url}" controls style="max-width:100px;margin:4px 0"></video>`
+        ).join('');
+
         marker.bindPopup(`<b>${m.name}</b><br>${m.comment}<br>${m.date}<br>${mediaHtml}`);
         leafletMarkers.push(marker);
       });
