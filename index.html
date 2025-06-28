@@ -123,141 +123,55 @@
   <h3>Новая точка</h3>
   <input id="markerTitle" placeholder="Название места" />
   <textarea id="markerComment" placeholder="Комментарий"></textarea>
+  <select id="markerType">
+    <option value="visited">Был</option>
+    <option value="planned">Планирую</option>
+  </select>
+  <select id="markerColor">
+    <option value="red">Красный</option>
+    <option value="green">Зелёный</option>
+    <option value="blue">Синий</option>
+    <option value="yellow">Жёлтый</option>
+    <option value="purple">Фиолетовый</option>
+    <option value="orange">Оранжевый</option>
+    <option value="brown">Коричневый</option>
+    <option value="pink">Розовый</option>
+    <option value="gray">Серый</option>
+    <option value="black">Чёрный</option>
+  </select>
   <input type="file" id="markerMedia" multiple accept="image/*,video/*" />
+  <div id="coordDisplay"></div>
+  <div id="addressDisplay"></div>
   <button onclick="saveMarker()">Сохранить точку</button>
   <button onclick="closePopup('markerPopup')">Отмена</button>
 </div>
 
+<!-- Всплывающее окно профиля -->
+<div id="profilePopup" class="profile-popup">
+  <h3>Профиль</h3>
+  <input id="profileName" placeholder="Имя" />
+  <input id="profileAge" type="number" placeholder="Возраст" />
+  <textarea id="profileComment" placeholder="Комментарий"></textarea>
+  <input type="file" id="avatarUpload" accept="image/*" />
+  <div id="avatarPreview"></div>
+  <button onclick="saveProfile()">Сохранить профиль</button>
+  <button onclick="closePopup('profilePopup')">Закрыть</button>
+</div>
+
+<!-- Всплывающее окно друзей -->
+<div id="friendsPopup" class="friends-popup">
+  <h3>Друзья</h3>
+  <input type="text" id="friendSearch" placeholder="Имя или Email друга" />
+  <button onclick="searchFriend()">Найти</button>
+  <div id="searchResults"></div>
+  <p>Ссылка на мой профиль: <span id="myProfileLink"></span></p>
+  <div id="friendsList"></div>
+  <button onclick="closePopup('friendsPopup')">Закрыть</button>
+</div>
+
 <script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyB0c7llONI831LKFmqTIH6393ZD4ZjBOZY",
-    authDomain: "travel-map-f3677.firebaseapp.com",
-    projectId: "travel-map-f3677",
-    storageBucket: "travel-map-f3677.appspot.com",
-    messagingSenderId: "692883514599",
-    appId: "1:692883514599:web:0b7a71587433e67a85ae42"
-  };
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.firestore();
-  const auth = firebase.auth();
-  const storage = firebase.storage();
-
-  let currentUser = null;
-  let map;
-  let routeSelection = false;
-  let routeCoords = [];
-  let routeLine = null;
-  let tempMarker = null;
-  let uploadedFiles = [];
-
-  document.getElementById('routeBtn').onclick = () => {
-    document.getElementById('routePopup').style.display = 'block';
-  };
-
-  function startRouteSelection() {
-    routeCoords = [];
-    routeSelection = true;
-    document.getElementById('routePoints').textContent = 'Кликните на карту для выбора точек маршрута';
-  }
-
-  function drawRouteLine() {
-    if (routeLine) map.removeLayer(routeLine);
-    routeLine = L.polyline(routeCoords, { color: 'green' }).addTo(map);
-  }
-
-  function saveRoute() {
-    const name = document.getElementById('routeName').value.trim();
-    if (!name || routeCoords.length < 2) return alert('Укажите название и минимум 2 точки');
-    db.collection('routes').add({
-      uid: currentUser.uid,
-      name,
-      points: routeCoords,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    }).then(() => {
-      alert('Путешествие сохранено');
-      closePopup('routePopup');
-      routeSelection = false;
-      drawRouteLine();
-    }).catch(err => alert('Ошибка сохранения'));
-  }
-
-  function closePopup(id) {
-    document.getElementById(id).style.display = 'none';
-  }
-
-  function initMap() {
-    map = L.map('map').setView([55.7558, 37.6173], 5);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(map);
-    map.on('click', e => {
-      if (routeSelection) {
-        routeCoords.push([e.latlng.lat, e.latlng.lng]);
-        document.getElementById('routePoints').textContent = routeCoords.map(p => p.join(',')).join(' -> ');
-        drawRouteLine();
-      } else {
-        openMarkerPopup(e.latlng);
-      }
-    });
-  }
-
-  function openMarkerPopup(latlng) {
-    if (tempMarker) map.removeLayer(tempMarker);
-    tempMarker = L.marker(latlng, { draggable: true }).addTo(map);
-    document.getElementById('markerTitle').value = '';
-    document.getElementById('markerComment').value = '';
-    uploadedFiles = [];
-    document.getElementById('markerMedia').value = '';
-    document.getElementById('markerPopup').style.display = 'block';
-  }
-
-  async function saveMarker() {
-    const title = document.getElementById('markerTitle').value.trim();
-    const comment = document.getElementById('markerComment').value.trim();
-    const files = document.getElementById('markerMedia').files;
-    if (!title || !tempMarker) return alert('Введите название и выберите точку');
-    const mediaUrls = [];
-    for (let file of files) {
-      const ref = storage.ref(`users/${currentUser.uid}/media/${Date.now()}_${file.name}`);
-      await ref.put(file);
-      const url = await ref.getDownloadURL();
-      mediaUrls.push(url);
-    }
-    const data = {
-      uid: currentUser.uid,
-      title,
-      comment,
-      lat: tempMarker.getLatLng().lat,
-      lng: tempMarker.getLatLng().lng,
-      media: mediaUrls,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    };
-    await db.collection('markers').add(data);
-    alert('Метка сохранена');
-    map.removeLayer(tempMarker);
-    tempMarker = null;
-    closePopup('markerPopup');
-  }
-
-  auth.onAuthStateChanged(user => {
-    if (user) {
-      currentUser = user;
-      document.getElementById('welcomeUser').textContent = `Здравствуйте, ${user.email}`;
-      initMap();
-      loadRoutes();
-    } else {
-      currentUser = null;
-      document.getElementById('welcomeUser').textContent = 'Здравствуйте, гость';
-    }
-  });
-
-  async function loadRoutes() {
-    const snapshot = await db.collection('routes').where('uid', '==', currentUser.uid).get();
-    snapshot.forEach(doc => {
-      const route = doc.data();
-      if (route.points && route.points.length > 1) {
-        L.polyline(route.points, { color: 'green' }).addTo(map).bindPopup(`Путешествие: ${route.name}`);
-      }
-    });
-  }
+  // Здесь будут добавлены скрипты для карты, сохранения точек, профиля, друзей и маршрутов.
 </script>
+
 </body>
 </html>
