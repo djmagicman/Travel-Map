@@ -2,265 +2,51 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Travel Map Social</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Микки Маус Улыбка</title>
   <style>
-    body, html {
+    body {
       margin: 0;
       padding: 0;
-      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background-color: #f0f0f0;
       font-family: Arial, sans-serif;
     }
-    #sidebar {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 220px;
-      height: 100vh;
-      background-color: #1e1e2f;
-      color: white;
-      padding: 20px;
-      box-sizing: border-box;
-      display: flex;
-      flex-direction: column;
-      z-index: 1500;
-    }
-    #sidebar h2 {
-      margin-top: 0;
-      font-size: 22px;
-    }
-    #sidebar button {
-      margin: 10px 0;
-      padding: 10px;
-      font-size: 16px;
-      background-color: #3a3a5c;
-      border: none;
-      color: white;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: background-color 0.2s;
-    }
-    #sidebar button:hover {
-      background-color: #57577a;
-    }
-    #map {
-      margin-left: 220px;
-      height: 100vh;
-    }
-    #form {
-      position: absolute;
-      top: 60px;
-      left: 50%;
-      transform: translateX(-50%);
-      background-color: white;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 0 15px rgba(0,0,0,0.2);
-      z-index: 1600;
-      display: none;
+    .mickey {
       width: 300px;
+      cursor: pointer;
+      transition: transform 0.2s;
     }
-    #form input, #form select, #form textarea, #form button {
-      width: 100%;
-      margin: 8px 0;
-      padding: 8px;
-      font-size: 14px;
-      box-sizing: border-box;
+    .mickey:hover {
+      transform: scale(1.05);
     }
-    #form button {
-      background-color: #2196F3;
-      color: white;
-      border: none;
-      border-radius: 4px;
+    .smile {
+      display: none;
+      font-size: 24px;
+      margin-top: 20px;
+      color: #333;
     }
   </style>
 </head>
 <body>
-  <div id="sidebar">
-    <h2 id="userGreeting">Здравствуйте, гость</h2>
-    <button onclick="showProfile()">Профиль</button>
-    <button onclick="showFriends()">Друзья</button>
-    <button onclick="showTrips()">Путешествия</button>
-    <button onclick="logout()">Выйти</button>
+  <div style="text-align: center;">
+    <img id="mickeyImg" class="mickey" src="https://upload.wikimedia.org/wikipedia/en/d/d4/Mickey_Mouse.png" alt="Микки Маус" />
+    <div id="smileText" class="smile">😊 Микки улыбается тебе!</div>
   </div>
-  <div id="map"></div>
-  <div id="form">
-    <h3>Добавить поездку</h3>
-    <input id="placeName" placeholder="Название места" />
-    <input id="visitDate" type="date" />
-    <textarea id="comment" placeholder="Комментарий"></textarea>
-    <select id="markerType">
-      <option value="visited">Был</option>
-      <option value="planned">Планирую</option>
-    </select>
-    <select id="markerColor">
-      <option value="red">Красный</option>
-      <option value="green">Зеленый</option>
-      <option value="blue">Синий</option>
-      <option value="yellow">Желтый</option>
-      <option value="purple">Фиолетовый</option>
-      <option value="orange">Оранжевый</option>
-      <option value="brown">Коричневый</option>
-      <option value="pink">Розовый</option>
-      <option value="gray">Серый</option>
-      <option value="black">Черный</option>
-    </select>
-    <input id="mediaInput" type="file" accept="image/*,video/*" multiple />
-    <p id="coordDisplay"></p>
-    <p id="addressDisplay"></p>
-    <button id="saveButton">Сохранить</button>
-  </div>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+
   <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyB0c7llONI831LKFmqTIH6393ZD4ZjBOZY",
-      authDomain: "travel-map-f3677.firebaseapp.com",
-      projectId: "travel-map-f3677",
-      storageBucket: "travel-map-f3677.appspot.com",
-      messagingSenderId: "692883514599",
-      appId: "1:692883514599:web:0b7a71587433e67a85ae42",
-      measurementId: "G-M8L8K1DL29"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.firestore();
-    const storage = firebase.storage();
+    const mickey = document.getElementById('mickeyImg');
+    const smile = document.getElementById('smileText');
 
-    let map;
-    let currentUser = null;
-    let markers = {};
-    let currentEditMarkerId = null;
-    let clickedLatLng = null;
-
-    window.onload = () => {
-      initMap();
-      document.getElementById('saveButton').addEventListener('click', saveMarker);
-    };
-
-    function initMap() {
-      map = L.map('map').setView([55.7558, 37.6173], 5);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 18,
-      }).addTo(map);
-      map.on('click', onMapClick);
-      loadMarkers();
-    }
-
-    function onMapClick(e) {
-      clickedLatLng = e.latlng;
-      document.getElementById('form').style.display = 'block';
-      document.getElementById('coordDisplay').textContent = `Широта: ${clickedLatLng.lat.toFixed(5)}, Долгота: ${clickedLatLng.lng.toFixed(5)}`;
-      fetchAddress(clickedLatLng.lat, clickedLatLng.lng);
-    }
-
-    async function fetchAddress(lat, lng) {
-      try {
-        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`);
-        const data = await res.json();
-        document.getElementById('addressDisplay').textContent = data.display_name || '';
-      } catch {
-        document.getElementById('addressDisplay').textContent = '';
-      }
-    }
-
-    async function saveMarker() {
-      if (!clickedLatLng) return alert('Сначала выберите место на карте');
-
-      const placeName = document.getElementById('placeName').value.trim();
-      const visitDate = document.getElementById('visitDate').value;
-      const comment = document.getElementById('comment').value.trim();
-      const type = document.getElementById('markerType').value;
-      const color = document.getElementById('markerColor').value;
-      const address = document.getElementById('addressDisplay').textContent;
-
-      if (!placeName || !visitDate) {
-        alert('Пожалуйста, заполните название и дату');
-        return;
-      }
-
-      const markerData = {
-        uid: currentUser ? currentUser.uid : 'anonymous',
-        placeName,
-        visitDate,
-        comment,
-        type,
-        color,
-        lat: clickedLatLng.lat,
-        lng: clickedLatLng.lng,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        address
-      };
-
-      try {
-        const docRef = await db.collection('markers').add(markerData);
-        addMarkerToMap({...markerData, id: docRef.id});
-        document.getElementById('form').style.display = 'none';
-        document.getElementById('placeName').value = '';
-        document.getElementById('visitDate').value = '';
-        document.getElementById('comment').value = '';
-        document.getElementById('coordDisplay').textContent = '';
-        document.getElementById('addressDisplay').textContent = '';
-        clickedLatLng = null;
-      } catch (e) {
-        alert('Ошибка сохранения');
-        console.error(e);
-      }
-    }
-
-    function addMarkerToMap(data) {
-      const marker = L.circleMarker([data.lat, data.lng], {
-        color: data.color,
-        radius: 10,
-        fillOpacity: 0.8
-      });
-      marker.bindPopup(`<b>${data.placeName}</b><br>${data.comment || ''}<br>${data.visitDate || ''}`);
-      marker.addTo(map);
-      markers[data.id] = marker;
-    }
-
-    async function loadMarkers() {
-      try {
-        const snapshot = await db.collection('markers').get();
-        snapshot.forEach(doc => {
-          const data = doc.data();
-          data.id = doc.id;
-          addMarkerToMap(data);
-        });
-      } catch (e) {
-        console.error('Ошибка загрузки меток:', e);
-      }
-    }
-
-    auth.onAuthStateChanged(user => {
-      if (user) {
-        currentUser = user;
-        document.getElementById('userGreeting').textContent = `Здравствуйте, ${user.email}`;
-      } else {
-        currentUser = null;
-        document.getElementById('userGreeting').textContent = 'Здравствуйте, гость';
-      }
+    mickey.addEventListener('click', () => {
+      smile.style.display = 'block';
+      setTimeout(() => {
+        smile.style.display = 'none';
+      }, 2000);
     });
-
-    function logout() {
-      auth.signOut();
-    }
-
-    function showProfile() {
-      alert('Раздел "Профиль" с редактированием имени, возраста, комментария и аватара будет добавлен.');
-    }
-
-    function showFriends() {
-      alert('Раздел "Друзья": поиск по email/имени, приглашения и список друзей — будет реализован.');
-    }
-
-    function showTrips() {
-      alert('Раздел "Путешествия": добавление маршрутов, отображение линий и точек — в разработке.');
-    }
   </script>
 </body>
 </html>
