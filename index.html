@@ -147,6 +147,7 @@
       maxZoom: 18,
     }).addTo(map);
     map.on('click', onMapClick);
+    loadMarkers();
   }
 
   function onMapClick(e) {
@@ -210,6 +211,19 @@
     markers[data.id] = marker;
   }
 
+  async function loadMarkers() {
+    try {
+      const snapshot = await db.collection('markers').get();
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        data.id = doc.id;
+        addMarkerToMap(data);
+      });
+    } catch (e) {
+      console.error('Ошибка загрузки меток:', e);
+    }
+  }
+
   auth.onAuthStateChanged(user => {
     if (user) {
       currentUser = user;
@@ -225,15 +239,15 @@
   }
 
   function showProfile() {
-    alert('Профиль будет реализован');
+    alert('Раздел "Профиль" с редактированием имени, возраста, комментария и аватара будет добавлен.');
   }
 
   function showFriends() {
-    alert('Раздел "Друзья" в разработке');
+    alert('Раздел "Друзья": поиск по email/имени, приглашения и список друзей — будет реализован.');
   }
 
   function showTrips() {
-    alert('Путешествия скоро будут!');
+    alert('Раздел "Путешествия": добавление маршрутов, отображение линий и точек — в разработке.');
   }
 </script>
 </body>
