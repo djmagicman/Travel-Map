@@ -8,8 +8,8 @@
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-    import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
     import { getStorage } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 
     const firebaseConfig = {
@@ -26,73 +26,49 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
     const storage = getStorage(app);
+
+    const mapDiv = document.getElementById("map");
+
+    onAuthStateChanged(auth, user => {
+      if (user) {
+        mapDiv.innerHTML = "<div id='map-inner' style='height:100vh'></div>";
+        const map = L.map('map-inner').setView([51.505, -0.09], 2);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+        L.marker([51.505, -0.09]).addTo(map).bindPopup("Вы вошли как: " + user.email);
+      } else {
+        mapDiv.innerHTML = `
+          <div style="padding: 20px; max-width: 300px; margin: 50px auto; border: 1px solid #ccc; border-radius: 8px; background: #fff;">
+            <h3>Вход / Регистрация</h3>
+            <input id="email" type="email" placeholder="Email" />
+            <input id="password" type="password" placeholder="Пароль" />
+            <button id="login">Войти</button>
+            <button id="register">Зарегистрироваться</button>
+            <div id="error" style="color:red;margin-top:10px;"></div>
+          </div>
+        `;
+        document.getElementById("login").onclick = async () => {
+          const email = document.getElementById("email").value;
+          const password = document.getElementById("password").value;
+          try {
+            await signInWithEmailAndPassword(auth, email, password);
+          } catch (e) {
+            document.getElementById("error").innerText = "Ошибка входа: " + e.message;
+          }
+        };
+        document.getElementById("register").onclick = async () => {
+          const email = document.getElementById("email").value;
+          const password = document.getElementById("password").value;
+          try {
+            await createUserWithEmailAndPassword(auth, email, password);
+          } catch (e) {
+            document.getElementById("error").innerText = "Ошибка регистрации: " + e.message;
+          }
+        };
+      }
+    });
   </script>
-  <style>
-    body, html { margin: 0; padding: 0; height: 100%; font-family: sans-serif; }
-    #map { height: 100vh; width: 100vw; }
-    .form-popup, .trip-popup {
-      position: fixed;
-      top: 10px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: white;
-      padding: 10px;
-      border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.2);
-      z-index: 1000;
-      display: none;
-      width: 300px;
-    }
-    input, textarea, select, button {
-      display: block;
-      margin-top: 8px;
-      width: 100%;
-    }
-    .hint, .user-info, .footer-note, .profile-btn, .welcome, .friends-btn {
-      position: absolute;
-      background: rgba(255,255,255,0.8);
-      padding: 8px 10px;
-      border-radius: 8px;
-      z-index: 1000;
-      font-size: 14px;
-    }
-    .hint { top: 10px; right: 10px; }
-    .welcome { top: 10px; left: 50%; transform: translateX(-50%); font-size: 18px; font-weight: bold; }
-    .user-info { top: 50px; left: 10px; display: none; }
-    .profile-btn { top: 10px; left: 10px; cursor: pointer; }
-    .friends-btn { top: 50px; right: 10px; cursor: pointer; }
-    .footer-note { bottom: 10px; left: 10px; font-size: 12px; }
-    .media-preview img, .media-preview video { max-width: 100%; margin-top: 5px; display: block; position: relative; }
-    .media-preview div { position: relative; display: inline-block; margin-top: 5px; }
-    .media-preview button {
-      position: absolute;
-      top: 0;
-      right: 0;
-      background: rgba(255,0,0,0.7);
-      border: none;
-      color: white;
-      cursor: pointer;
-      font-size: 14px;
-      padding: 2px 5px;
-    }
-    .chat-box {
-      position: fixed;
-      bottom: 10px;
-      right: 10px;
-      background: white;
-      width: 250px;
-      height: 300px;
-      border-radius: 10px;
-      box-shadow: 0 0 8px rgba(0,0,0,0.3);
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-    .chat-messages { flex: 1; overflow-y: auto; padding: 10px; font-size: 13px; }
-    .chat-input { display: flex; border-top: 1px solid #ccc; }
-    .chat-input input { flex: 1; border: none; padding: 8px; }
-    .chat-input button { border: none; background: #2196f3; color: white; padding: 8px; }
-  </style>
 </head>
 <body>
   <div id="map"></div>
