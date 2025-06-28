@@ -11,88 +11,50 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
 <style>
+  body, html { margin: 0; padding: 0; font-family: Arial, sans-serif; }
   #sidebar {
     position: fixed;
     top: 0;
     left: 0;
-    width: 240px;
+    width: 220px;
     height: 100vh;
-    background: linear-gradient(135deg, #222, #333);
-    color: white;
-    display: flex;
-    flex-direction: column;
+    background-color: #2c3e50;
+    color: #ecf0f1;
     padding: 20px;
     box-sizing: border-box;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    z-index: 1500;
-  }
-  #sidebar h2 {
-    margin: 0 0 20px 0;
-    font-weight: 600;
-    font-size: 24px;
+    z-index: 1000;
   }
   #sidebar button {
-    background: #444;
+    width: 100%;
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #34495e;
+    color: #fff;
     border: none;
-    color: white;
-    padding: 12px 15px;
-    margin-bottom: 10px;
+    border-radius: 4px;
     cursor: pointer;
-    font-size: 16px;
-    border-radius: 6px;
-    transition: background-color 0.25s ease;
-    text-align: left;
-  }
-  #sidebar button:hover {
-    background: #666;
-  }
-  #welcomeUser {
-    margin-bottom: 20px;
-    font-weight: 600;
-    font-size: 18px;
-    word-break: break-word;
   }
   #map {
-    margin-left: 240px;
+    margin-left: 220px;
     height: 100vh;
-    width: calc(100vw - 240px);
   }
-  .form-popup, .trip-popup, .profile-popup, .friends-popup, .route-popup, .auth-popup {
+  .form-popup, .auth-popup {
     position: fixed;
-    top: 10px;
+    top: 20px;
     left: 50%;
     transform: translateX(-50%);
     background: white;
     padding: 15px;
     border-radius: 8px;
     box-shadow: 0 0 10px rgba(0,0,0,0.2);
-    z-index: 1600;
-    display: none;
-    width: 320px;
-    max-height: 80vh;
-    overflow-y: auto;
+    z-index: 1500;
   }
   input, textarea, select, button {
     display: block;
-    margin-top: 8px;
     width: 100%;
+    margin-top: 10px;
+    padding: 8px;
     box-sizing: border-box;
-    font-size: 14px;
-    padding: 6px 8px;
-  }
-  button {
-    background-color: #2196f3;
-    border: none;
-    color: white;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-  }
-  button:hover {
-    background-color: #1976d2;
-  }
-  h3 {
-    margin-top: 0;
   }
 </style>
 </head>
@@ -108,7 +70,6 @@
 
 <div id="map"></div>
 
-<!-- Авторизация -->
 <div id="authPopup" class="auth-popup">
   <h3>Вход или регистрация</h3>
   <input type="email" id="authEmail" placeholder="Email" />
@@ -117,8 +78,7 @@
   <button onclick="signUp()">Зарегистрироваться</button>
 </div>
 
-<!-- Всплывающее окно добавления метки -->
-<div id="markerPopup" class="form-popup">
+<div id="markerPopup" class="form-popup" style="display:none">
   <h3>Новая точка</h3>
   <input id="markerTitle" placeholder="Название места" />
   <textarea id="markerComment" placeholder="Комментарий"></textarea>
@@ -143,129 +103,131 @@
 </div>
 
 <script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyB0c7llONI831LKFmqTIH6393ZD4ZjBOZY",
-    authDomain: "travel-map-f3677.firebaseapp.com",
-    projectId: "travel-map-f3677",
-    storageBucket: "travel-map-f3677.appspot.com",
-    messagingSenderId: "692883514599",
-    appId: "1:692883514599:web:0b7a71587433e67a85ae42",
-    measurementId: "G-M8L8K1DL29"
-  };
-  firebase.initializeApp(firebaseConfig);
-  const auth = firebase.auth();
-  const db = firebase.firestore();
-  const storage = firebase.storage();
+const firebaseConfig = {
+  apiKey: "AIzaSyB0c7llONI831LKFmqTIH6393ZD4ZjBOZY",
+  authDomain: "travel-map-f3677.firebaseapp.com",
+  projectId: "travel-map-f3677",
+  storageBucket: "travel-map-f3677.appspot.com",
+  messagingSenderId: "692883514599",
+  appId: "1:692883514599:web:0b7a71587433e67a85ae42",
+  measurementId: "G-M8L8K1DL29"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+const storage = firebase.storage();
 
-  let currentUser = null;
-  let map;
-  let markers = [];
+let currentUser = null;
+let map;
+let markers = [];
 
-  auth.onAuthStateChanged(user => {
-    if (user) {
-      currentUser = user;
-      document.getElementById('welcomeUser').textContent = `Здравствуйте, ${user.email}`;
-      document.getElementById('authPopup').style.display = 'none';
-      initMap();
-    } else {
-      document.getElementById('authPopup').style.display = 'block';
-    }
+auth.onAuthStateChanged(user => {
+  if (user) {
+    currentUser = user;
+    document.getElementById('welcomeUser').textContent = `Здравствуйте, ${user.email}`;
+    document.getElementById('authPopup').style.display = 'none';
+    initMap();
+  } else {
+    document.getElementById('authPopup').style.display = 'block';
+  }
+});
+
+function signIn() {
+  const email = document.getElementById('authEmail').value;
+  const password = document.getElementById('authPassword').value;
+  auth.signInWithEmailAndPassword(email, password).catch(e => alert('Ошибка входа: ' + e.message));
+}
+
+function signUp() {
+  const email = document.getElementById('authEmail').value;
+  const password = document.getElementById('authPassword').value;
+  auth.createUserWithEmailAndPassword(email, password).catch(e => alert('Ошибка регистрации: ' + e.message));
+}
+
+function initMap() {
+  map = L.map('map').setView([55.751244, 37.618423], 5);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 18,
+  }).addTo(map);
+  map.on('click', onMapClick);
+  loadMarkers();
+}
+
+function onMapClick(e) {
+  window.currentLatLng = e.latlng;
+  document.getElementById('markerPopup').style.display = 'block';
+  document.getElementById('coordDisplay').textContent = `Координаты: ${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`;
+  fetchAddress(e.latlng.lat, e.latlng.lng);
+}
+
+async function fetchAddress(lat, lng) {
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`);
+    const data = await res.json();
+    document.getElementById('addressDisplay').textContent = data.display_name || '';
+  } catch (e) {
+    document.getElementById('addressDisplay').textContent = '';
+  }
+}
+
+async function saveMarker() {
+  if (!currentUser || !window.currentLatLng) {
+    alert('Пользователь не авторизован или нет координат');
+    return;
+  }
+  const title = document.getElementById('markerTitle').value.trim();
+  const comment = document.getElementById('markerComment').value.trim();
+  const type = document.getElementById('markerType').value;
+  const color = document.getElementById('markerColor').value;
+  const address = document.getElementById('addressDisplay').textContent;
+
+  const fileInput = document.getElementById('markerMedia');
+  const mediaUrls = [];
+  for (let file of fileInput.files) {
+    const ref = storage.ref(`markers/${currentUser.uid}/${Date.now()}_${file.name}`);
+    await ref.put(file);
+    const url = await ref.getDownloadURL();
+    mediaUrls.push(url);
+  }
+
+  await db.collection('markers').add({
+    uid: currentUser.uid,
+    title,
+    comment,
+    type,
+    color,
+    lat: window.currentLatLng.lat,
+    lng: window.currentLatLng.lng,
+    address,
+    media: mediaUrls,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
   });
 
-  function signIn() {
-    const email = document.getElementById('authEmail').value;
-    const password = document.getElementById('authPassword').value;
-    auth.signInWithEmailAndPassword(email, password).catch(e => alert('Ошибка входа: ' + e.message));
-  }
+  const marker = L.circleMarker([window.currentLatLng.lat, window.currentLatLng.lng], {
+    color: color,
+    radius: 8
+  }).addTo(map).bindPopup(`<b>${title}</b><br>${comment}`);
+  markers.push(marker);
 
-  function signUp() {
-    const email = document.getElementById('authEmail').value;
-    const password = document.getElementById('authPassword').value;
-    auth.createUserWithEmailAndPassword(email, password).catch(e => alert('Ошибка регистрации: ' + e.message));
-  }
+  closePopup('markerPopup');
+}
 
-  function initMap() {
-    map = L.map('map').setView([55.751244, 37.618423], 5);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 18,
-    }).addTo(map);
-    map.on('click', onMapClick);
-    loadMarkers();
-  }
-
-  function onMapClick(e) {
-    document.getElementById('markerPopup').style.display = 'block';
-    document.getElementById('coordDisplay').textContent = `Координаты: ${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`;
-    fetchAddress(e.latlng.lat, e.latlng.lng);
-    window.currentLatLng = e.latlng;
-  }
-
-  async function fetchAddress(lat, lng) {
-    try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`);
-      const data = await res.json();
-      document.getElementById('addressDisplay').textContent = data.display_name || '';
-    } catch (e) {
-      document.getElementById('addressDisplay').textContent = '';
-    }
-  }
-
-  async function saveMarker() {
-    if (!currentUser || !window.currentLatLng) return;
-    const title = document.getElementById('markerTitle').value;
-    const comment = document.getElementById('markerComment').value;
-    const type = document.getElementById('markerType').value;
-    const color = document.getElementById('markerColor').value;
-    const address = document.getElementById('addressDisplay').textContent;
-
-    const fileInput = document.getElementById('markerMedia');
-    const mediaUrls = [];
-
-    for (let file of fileInput.files) {
-      const ref = storage.ref(`markers/${currentUser.uid}/${Date.now()}_${file.name}`);
-      await ref.put(file);
-      const url = await ref.getDownloadURL();
-      mediaUrls.push(url);
-    }
-
-    await db.collection('markers').add({
-      uid: currentUser.uid,
-      title,
-      comment,
-      type,
-      color,
-      lat: window.currentLatLng.lat,
-      lng: window.currentLatLng.lng,
-      address,
-      media: mediaUrls,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-
-    const marker = L.circleMarker([window.currentLatLng.lat, window.currentLatLng.lng], {
-      color: color,
+async function loadMarkers() {
+  if (!currentUser) return;
+  const snapshot = await db.collection('markers').where('uid', '==', currentUser.uid).get();
+  snapshot.forEach(doc => {
+    const data = doc.data();
+    const marker = L.circleMarker([data.lat, data.lng], {
+      color: data.color,
       radius: 8
-    }).addTo(map).bindPopup(`<b>${title}</b><br>${comment}`);
+    }).addTo(map).bindPopup(`<b>${data.title}</b><br>${data.comment}`);
     markers.push(marker);
+  });
+}
 
-    closePopup('markerPopup');
-  }
-
-  async function loadMarkers() {
-    if (!currentUser) return;
-    const snapshot = await db.collection('markers').where('uid', '==', currentUser.uid).get();
-    snapshot.forEach(doc => {
-      const data = doc.data();
-      const marker = L.circleMarker([data.lat, data.lng], {
-        color: data.color,
-        radius: 8
-      }).addTo(map).bindPopup(`<b>${data.title}</b><br>${data.comment}`);
-      markers.push(marker);
-    });
-  }
-
-  function closePopup(id) {
-    document.getElementById(id).style.display = 'none';
-  }
+function closePopup(id) {
+  document.getElementById(id).style.display = 'none';
+}
 </script>
 
 </body>
