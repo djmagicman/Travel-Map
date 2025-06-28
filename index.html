@@ -6,89 +6,6 @@
   <title>Travel Map с Firebase Email/Password</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <!-- Firebase SDK -->
-  <script type="module">
-    // Импорт Firebase из CDN в модуле
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
-    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js";
-
-    // Конфигурация Firebase - сюда вставь свои данные из Firebase Console
-    const firebaseConfig = {
-      apiKey: "AIzaSyB0c7llONI831LKFmqTIH6393ZD4ZjBOZY",
-      authDomain: "travel-map-f3677.firebaseapp.com",
-      projectId: "travel-map-f3677",
-      storageBucket: "travel-map-f3677.appspot.com",
-      messagingSenderId: "692883514599",
-      appId: "1:692883514599:web:0b7a71587433e67a85ae42"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-
-    window.onload = () => {
-      const loginForm = document.getElementById('loginForm');
-      const registerForm = document.getElementById('registerForm');
-      const logoutBtn = document.getElementById('logoutBtn');
-      const welcomeText = document.getElementById('welcomeText');
-      const mainContent = document.getElementById('mainContent');
-      const authContent = document.getElementById('authContent');
-
-      // Регистрация
-      registerForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const email = document.getElementById('registerEmail').value;
-        const password = document.getElementById('registerPassword').value;
-
-        createUserWithEmailAndPassword(auth, email, password)
-          .then(userCredential => {
-            alert('Регистрация прошла успешно!');
-            registerForm.reset();
-          })
-          .catch(error => alert('Ошибка регистрации: ' + error.message));
-      });
-
-      // Вход
-      loginForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const email = document.getElementById('loginEmail').value;
-        const password = document.getElementById('loginPassword').value;
-
-        signInWithEmailAndPassword(auth, email, password)
-          .then(userCredential => {
-            loginForm.reset();
-          })
-          .catch(error => alert('Ошибка входа: ' + error.message));
-      });
-
-      // Выход
-      logoutBtn.addEventListener('click', () => {
-        signOut(auth);
-      });
-
-      // Отслеживаем состояние входа пользователя
-      onAuthStateChanged(auth, user => {
-        if (user) {
-          // Пользователь вошёл
-          authContent.style.display = 'none';
-          mainContent.style.display = 'block';
-          welcomeText.textContent = `Добро пожаловать, ${user.email}`;
-          initMap();
-        } else {
-          // Пользователь не вошёл
-          authContent.style.display = 'block';
-          mainContent.style.display = 'none';
-        }
-      });
-
-      // Инициализация карты и меток
-      function initMap() {
-        if (window.map) return; // Чтобы не создавать карту дважды
-        window.map = L.map('map').setView([55.751244, 37.618423], 5);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(window.map);
-        // Здесь можно добавить инициализацию меток из localStorage или Firebase
-      }
-    };
-  </script>
   <style>
     body, html { margin:0; padding:0; height:100%; font-family: sans-serif; }
     #authContent, #mainContent { padding: 20px; }
@@ -98,6 +15,7 @@
     input { width: 100%; padding: 8px; margin: 5px 0; }
     button { padding: 8px; width: 100%; margin-top: 10px; }
     #logoutBtn { margin-top: 10px; }
+    #errorMsg { color: red; margin-top: 10px; }
   </style>
 </head>
 <body>
@@ -116,6 +34,7 @@
       <input type="password" id="registerPassword" placeholder="Пароль" required />
       <button type="submit">Зарегистрироваться</button>
     </form>
+    <div id="errorMsg"></div>
   </div>
 
   <div id="mainContent">
@@ -123,6 +42,89 @@
     <button id="logoutBtn">Выйти</button>
     <div id="map"></div>
   </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyB0c7llONI831LKFmqTIH6393ZD4ZjBOZY",
+      authDomain: "travel-map-f3677.firebaseapp.com",
+      projectId: "travel-map-f3677",
+      storageBucket: "travel-map-f3677.appspot.com",
+      messagingSenderId: "692883514599",
+      appId: "1:692883514599:web:0b7a71587433e67a85ae42"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    const loginForm = document.getElementById('loginForm');
+    const registerForm = document.getElementById('registerForm');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const welcomeText = document.getElementById('welcomeText');
+    const mainContent = document.getElementById('mainContent');
+    const authContent = document.getElementById('authContent');
+    const errorMsg = document.getElementById('errorMsg');
+
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorMsg.textContent = '';
+      const email = document.getElementById('loginEmail').value;
+      const password = document.getElementById('loginPassword').value;
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+        loginForm.reset();
+      } catch(e) {
+        errorMsg.textContent = 'Ошибка входа: ' + e.message;
+      }
+    });
+
+    registerForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorMsg.textContent = '';
+      const email = document.getElementById('registerEmail').value;
+      const password = document.getElementById('registerPassword').value;
+      try {
+        await createUserWithEmailAndPassword(auth, email, password);
+        alert('Регистрация прошла успешно!');
+        registerForm.reset();
+      } catch(e) {
+        errorMsg.textContent = 'Ошибка регистрации: ' + e.message;
+      }
+    });
+
+    logoutBtn.addEventListener('click', () => {
+      signOut(auth);
+    });
+
+    let mapInitialized = false;
+
+    onAuthStateChanged(auth, (user) => {
+      if(user) {
+        authContent.style.display = 'none';
+        mainContent.style.display = 'block';
+        welcomeText.textContent = `Добро пожаловать, ${user.email}`;
+        if(!mapInitialized) {
+          initMap();
+          mapInitialized = true;
+        }
+      } else {
+        authContent.style.display = 'block';
+        mainContent.style.display = 'none';
+        errorMsg.textContent = '';
+      }
+    });
+
+    function initMap() {
+      try {
+        window.map = L.map('map').setView([55.751244, 37.618423], 5);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(window.map);
+      } catch (e) {
+        alert('Ошибка инициализации карты: ' + e.message);
+      }
+    }
+  </script>
 
 </body>
 </html>
