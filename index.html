@@ -121,16 +121,18 @@ let currentUser = null;
 let map;
 let markers = [];
 
-auth.onAuthStateChanged(user => {
-  if (user) {
-    currentUser = user;
-    document.getElementById('welcomeUser').textContent = `Здравствуйте, ${user.email}`;
-    document.getElementById('authPopup').style.display = 'none';
-    initMap();
-  } else {
-    document.getElementById('authPopup').style.display = 'block';
-  }
-});
+window.onload = () => {
+  auth.onAuthStateChanged(user => {
+    if (user) {
+      currentUser = user;
+      document.getElementById('welcomeUser').textContent = `Здравствуйте, ${user.email}`;
+      document.getElementById('authPopup').style.display = 'none';
+      initMap();
+    } else {
+      document.getElementById('authPopup').style.display = 'block';
+    }
+  });
+};
 
 function signIn() {
   const email = document.getElementById('authEmail').value;
@@ -171,45 +173,52 @@ async function fetchAddress(lat, lng) {
 }
 
 async function saveMarker() {
-  if (!currentUser || !window.currentLatLng) {
-    alert('Пользователь не авторизован или нет координат');
-    return;
+  try {
+    if (!currentUser || !window.currentLatLng) {
+      alert('Пользователь не авторизован или нет координат');
+      return;
+    }
+    const title = document.getElementById('markerTitle').value.trim();
+    const comment = document.getElementById('markerComment').value.trim();
+    const type = document.getElementById('markerType').value;
+    const color = document.getElementById('markerColor').value;
+    const address = document.getElementById('addressDisplay').textContent;
+
+    const fileInput = document.getElementById('markerMedia');
+    const mediaUrls = [];
+    for (let file of fileInput.files) {
+      const ref = storage.ref(`markers/${currentUser.uid}/${Date.now()}_${file.name}`);
+      await ref.put(file);
+      const url = await ref.getDownloadURL();
+      mediaUrls.push(url);
+    }
+
+    const markerData = {
+      uid: currentUser.uid,
+      title,
+      comment,
+      type,
+      color,
+      lat: window.currentLatLng.lat,
+      lng: window.currentLatLng.lng,
+      address,
+      media: mediaUrls,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    await db.collection('markers').add(markerData);
+
+    const marker = L.circleMarker([markerData.lat, markerData.lng], {
+      color: color,
+      radius: 8
+    }).addTo(map).bindPopup(`<b>${title}</b><br>${comment}`);
+    markers.push(marker);
+
+    closePopup('markerPopup');
+  } catch (err) {
+    alert('Ошибка при сохранении метки: ' + err.message);
+    console.error(err);
   }
-  const title = document.getElementById('markerTitle').value.trim();
-  const comment = document.getElementById('markerComment').value.trim();
-  const type = document.getElementById('markerType').value;
-  const color = document.getElementById('markerColor').value;
-  const address = document.getElementById('addressDisplay').textContent;
-
-  const fileInput = document.getElementById('markerMedia');
-  const mediaUrls = [];
-  for (let file of fileInput.files) {
-    const ref = storage.ref(`markers/${currentUser.uid}/${Date.now()}_${file.name}`);
-    await ref.put(file);
-    const url = await ref.getDownloadURL();
-    mediaUrls.push(url);
-  }
-
-  await db.collection('markers').add({
-    uid: currentUser.uid,
-    title,
-    comment,
-    type,
-    color,
-    lat: window.currentLatLng.lat,
-    lng: window.currentLatLng.lng,
-    address,
-    media: mediaUrls,
-    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-  });
-
-  const marker = L.circleMarker([window.currentLatLng.lat, window.currentLatLng.lng], {
-    color: color,
-    radius: 8
-  }).addTo(map).bindPopup(`<b>${title}</b><br>${comment}`);
-  markers.push(marker);
-
-  closePopup('markerPopup');
 }
 
 async function loadMarkers() {
