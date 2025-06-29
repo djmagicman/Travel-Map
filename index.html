@@ -83,7 +83,7 @@
       <div id="userName"></div>
     </div>
     <div>
-      <button onclick="alert('Функция профиля скоро появится')">Профиль</button>
+      <button onclick="editProfile()">Профиль</button>
       <button onclick="alert('Функция друзей скоро появится')">Друзья</button>
       <button onclick="alert('Путешествия скоро появятся')">Путешествия</button>
     </div>
@@ -111,6 +111,16 @@
     }
     function getMarkersFromLocalStorage() {
       return JSON.parse(localStorage.getItem(markerDataKey) || '[]');
+    }
+
+    function editProfile() {
+      const name = prompt("Введите ваше имя:");
+      const avatarURL = prompt("Введите ссылку на ваше фото:");
+      const user = getUserDataFromLocalStorage();
+      user.name = name;
+      user.avatarURL = avatarURL;
+      saveUserDataToLocalStorage(user);
+      location.reload();
     }
 
     const existingUser = getUserDataFromLocalStorage();
