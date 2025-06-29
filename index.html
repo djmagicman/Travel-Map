@@ -41,13 +41,18 @@
       cursor: pointer;
       border-radius: 6px;
     }
+    #preview {
+      max-width: 100%;
+      margin-top: 5px;
+    }
   </style>
 </head>
 <body>
   <div id="map"></div>
 
   <div id="form">
-    <input type="text" id="placeName" placeholder="Название места" />
+    <input type="text" id="placeName" placeholder="Название места" readonly />
+    <input type="text" id="coords" placeholder="Координаты" readonly />
     <input type="date" id="visitDate" />
     <textarea id="comment" placeholder="Комментарий"></textarea>
     <select id="tripType">
@@ -66,6 +71,8 @@
       <option value="brown">Коричневый</option>
       <option value="black">Чёрный</option>
     </select>
+    <input type="file" id="photoInput" accept="image/*" />
+    <img id="preview" src="" style="display:none;"/>
     <button onclick="saveMarker()">Сохранить</button>
     <button onclick="closeForm()">Отмена</button>
   </div>
@@ -78,10 +85,50 @@
     }).addTo(map);
 
     let currentLatLng = null;
+    let currentMarker = null;
+
+    function getPlaceName(latlng) {
+      fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latlng.lat}&lon=${latlng.lng}`)
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById('placeName').value = data.display_name || '';
+        });
+    }
 
     map.on('click', function(e) {
       currentLatLng = e.latlng;
+      document.getElementById('coords').value = `${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`;
+      getPlaceName(e.latlng);
       document.getElementById('form').style.display = 'block';
+
+      if (currentMarker) map.removeLayer(currentMarker);
+
+      const icon = L.divIcon({
+        className: 'custom-div-icon',
+        html: `<div style="background-color:#777;width:20px;height:20px;border-radius:50%;border:2px solid white;"></div>`,
+        iconSize: [30, 42],
+        iconAnchor: [15, 42]
+      });
+
+      currentMarker = L.marker(e.latlng, { icon, draggable: true }).addTo(map);
+
+      currentMarker.on('dragend', function(ev) {
+        currentLatLng = ev.target.getLatLng();
+        document.getElementById('coords').value = `${currentLatLng.lat.toFixed(5)}, ${currentLatLng.lng.toFixed(5)}`;
+        getPlaceName(currentLatLng);
+      });
+    });
+
+    document.getElementById('photoInput').addEventListener('change', function(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          document.getElementById('preview').src = e.target.result;
+          document.getElementById('preview').style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+      }
     });
 
     function saveMarker() {
@@ -90,6 +137,7 @@
       const comment = document.getElementById('comment').value;
       const tripType = document.getElementById('tripType').value;
       const color = document.getElementById('markerColor').value;
+      const imageSrc = document.getElementById('preview').src;
 
       if (!name || !date || !currentLatLng) {
         alert("Заполните все поля и выберите точку на карте");
@@ -103,8 +151,19 @@
         iconAnchor: [15, 42]
       });
 
-      L.marker(currentLatLng, { icon }).addTo(map)
-        .bindPopup(`<b>${name}</b><br>${date}<br>${comment}<br>Тип: ${tripType}`).openPopup();
+      const marker = L.marker(currentLatLng, { icon, draggable: true }).addTo(map);
+
+      marker.bindPopup(
+        `<b>${name}</b><br>${date}<br>${comment}<br>Тип: ${tripType}<br>` +
+        (imageSrc ? `<img src="${imageSrc}" style="max-width:100px;margin-top:5px;" />` : '')
+      );
+
+      marker.on('mouseover', function () {
+        marker.openPopup();
+      });
+      marker.on('mouseout', function () {
+        marker.closePopup();
+      });
 
       closeForm();
     }
@@ -116,6 +175,13 @@
       document.getElementById('comment').value = '';
       document.getElementById('tripType').value = 'visited';
       document.getElementById('markerColor').value = 'red';
+      document.getElementById('photoInput').value = '';
+      document.getElementById('preview').src = '';
+      document.getElementById('preview').style.display = 'none';
+      if (currentMarker) {
+        map.removeLayer(currentMarker);
+        currentMarker = null;
+      }
     }
   </script>
 </body>
