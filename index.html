@@ -71,6 +71,8 @@
       border-radius: 8px;
       margin-bottom: 10px;
       font-size: 14px;
+      word-break: break-word;
+      white-space: pre-wrap;
     }
   </style>
 </head>
@@ -120,6 +122,9 @@
     let currentLatLng = null;
     let currentMarker = null;
     let currentColor = 'red';
+    let editingMarker = null;
+
+    const markers = [];
 
     map.on('click', function(e) {
       currentLatLng = e.latlng;
@@ -130,12 +135,7 @@
       if (currentMarker) map.removeLayer(currentMarker);
 
       currentColor = document.getElementById('markerColor').value;
-      const icon = L.divIcon({
-        className: 'custom-div-icon',
-        html: `<div style="background-color:${currentColor};width:20px;height:20px;border-radius:50%;border:2px solid white;"></div>`,
-        iconSize: [30, 42],
-        iconAnchor: [15, 42]
-      });
+      const icon = createIcon(currentColor);
 
       currentMarker = L.marker(e.latlng, { icon, draggable: true }).addTo(map);
       currentMarker.on('dragend', function(ev) {
@@ -145,16 +145,19 @@
       });
     });
 
+    function createIcon(color) {
+      return L.divIcon({
+        className: 'custom-div-icon',
+        html: `<div style="background-color:${color};width:20px;height:20px;border-radius:50%;border:2px solid white;"></div>`,
+        iconSize: [30, 42],
+        iconAnchor: [15, 42]
+      });
+    }
+
     document.getElementById('markerColor').addEventListener('change', function () {
       currentColor = this.value;
       if (currentMarker) {
-        const icon = L.divIcon({
-          className: 'custom-div-icon',
-          html: `<div style="background-color:${currentColor};width:20px;height:20px;border-radius:50%;border:2px solid white;"></div>`,
-          iconSize: [30, 42],
-          iconAnchor: [15, 42]
-        });
-        currentMarker.setIcon(icon);
+        currentMarker.setIcon(createIcon(currentColor));
       }
     });
 
@@ -192,22 +195,44 @@
         return;
       }
 
-      const icon = L.divIcon({
-        className: 'custom-div-icon',
-        html: `<div style="background-color:${color};width:20px;height:20px;border-radius:50%;border:2px solid white;"></div>`,
-        iconSize: [30, 42],
-        iconAnchor: [15, 42]
-      });
+      const icon = createIcon(color);
 
       const marker = L.marker(currentLatLng, { icon, draggable: true }).addTo(map);
-      marker.bindPopup(
-        `<b>${tripTitle ? tripTitle + ' — ' : ''}${place}</b><br>${date}<br>${comment}<br>Тип: ${tripType}<br>` +
-        (imageSrc ? `<img src="${imageSrc}" style="max-width:100px;margin-top:5px;" />` : '')
-      );
+      const popupContent = () => {
+        return `
+          <b>${tripTitle ? tripTitle.split('').join('<br>') + '<br>' : ''}${place}</b><br>${date}<br>${comment}<br>Тип: ${tripType}<br>
+          ${(imageSrc && imageSrc.startsWith('data')) ? `<img src="${imageSrc}" style="max-width:100px;margin-top:5px;" />` : ''}
+          <br><button onclick="editMarker(${markers.length})">Редактировать</button>
+        `;
+      };
+      marker.bindPopup(popupContent);
       marker.on('mouseover', () => marker.openPopup());
       marker.on('mouseout', () => marker.closePopup());
 
+      markers.push({ marker, tripTitle, place, date, comment, tripType, imageSrc, color });
       closeForm();
+    }
+
+    function editMarker(index) {
+      const data = markers[index];
+      const { marker, tripTitle, place, date, comment, tripType, imageSrc, color } = data;
+      currentLatLng = marker.getLatLng();
+      currentColor = color;
+      editingMarker = marker;
+      currentMarker = null;
+
+      document.getElementById('tripTitle').value = tripTitle;
+      document.getElementById('placeInfo').textContent = place;
+      document.getElementById('coordInfo').textContent = `Координаты: ${currentLatLng.lat.toFixed(5)}, ${currentLatLng.lng.toFixed(5)}`;
+      document.getElementById('visitDate').value = date;
+      document.getElementById('comment').value = comment;
+      document.getElementById('tripType').value = tripType;
+      document.getElementById('markerColor').value = color;
+      document.getElementById('preview').src = imageSrc;
+      document.getElementById('preview').style.display = imageSrc ? 'block' : 'none';
+
+      map.removeLayer(marker);
+      document.getElementById('form').style.display = 'block';
     }
 
     function closeForm() {
@@ -224,6 +249,7 @@
         map.removeLayer(currentMarker);
         currentMarker = null;
       }
+      editingMarker = null;
     }
   </script>
 </body>
