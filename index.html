@@ -27,6 +27,8 @@
       box-shadow: 0 4px 12px rgba(0,0,0,0.2);
       padding: 15px;
       z-index: 1000;
+      max-width: 16.66vw;
+      overflow: hidden;
     }
     .form-popup input, .form-popup textarea, .form-popup select, .form-popup button {
       display: block;
@@ -74,11 +76,17 @@
       word-break: break-word;
       white-space: pre-wrap;
     }
+    .custom-div-icon div {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: 3px solid white;
+      box-shadow: 0 0 6px rgba(0,0,0,0.4);
+    }
   </style>
 </head>
 <body>
   <div id="map"></div>
-
   <div class="form-popup" id="form" style="display:none">
     <div id="placeInfo" class="static-info"></div>
     <div id="coordInfo" class="static-info"></div>
@@ -148,7 +156,7 @@
     function createIcon(color) {
       return L.divIcon({
         className: 'custom-div-icon',
-        html: `<div style="background-color:${color};width:20px;height:20px;border-radius:50%;border:2px solid white;"></div>`,
+        html: `<div style="background-color:${color}"></div>`,
         iconSize: [30, 42],
         iconAnchor: [15, 42]
       });
@@ -198,16 +206,17 @@
       const icon = createIcon(color);
 
       const marker = L.marker(currentLatLng, { icon, draggable: true }).addTo(map);
-      const popupContent = () => {
+      marker.bindPopup(() => {
         return `
           <b>${tripTitle ? tripTitle.split('').join('<br>') + '<br>' : ''}${place}</b><br>${date}<br>${comment}<br>Тип: ${tripType}<br>
           ${(imageSrc && imageSrc.startsWith('data')) ? `<img src="${imageSrc}" style="max-width:100px;margin-top:5px;" />` : ''}
           <br><button onclick="editMarker(${markers.length})">Редактировать</button>
         `;
-      };
-      marker.bindPopup(popupContent);
+      });
       marker.on('mouseover', () => marker.openPopup());
       marker.on('mouseout', () => marker.closePopup());
+
+      marker.on('click', () => marker.openPopup());
 
       markers.push({ marker, tripTitle, place, date, comment, tripType, imageSrc, color });
       closeForm();
