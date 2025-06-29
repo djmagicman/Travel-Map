@@ -16,11 +16,12 @@
     }
     #map {
       height: 100vh;
-      width: calc(100% - 250px);
-      margin-left: 250px;
+      width: 100%;
+      margin-left: 0;
+      transition: margin-left 0.3s;
     }
     .sidebar {
-      position: absolute;
+      position: fixed;
       left: 0;
       top: 0;
       width: 250px;
@@ -33,6 +34,23 @@
       flex-direction: column;
       justify-content: space-between;
       z-index: 1001;
+      transform: translateX(-100%);
+      transition: transform 0.3s;
+    }
+    .sidebar.active {
+      transform: translateX(0);
+    }
+    .menu-toggle {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 1002;
+      background-color: #2f2f2f;
+      color: white;
+      border: none;
+      padding: 10px;
+      border-radius: 5px;
+      cursor: pointer;
     }
     .sidebar button {
       background-color: #444;
@@ -55,62 +73,11 @@
       object-fit: cover;
       margin-bottom: 10px;
     }
-    .form-popup {
-      background: #fff;
-      border-radius: 15px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-      padding: 15px;
-      z-index: 1000;
-      max-width: 230px;
-      overflow: hidden;
-      position: absolute;
-      bottom: 20px;
-      left: 10px;
-    }
-    .form-popup input, .form-popup textarea, .form-popup select, .form-popup button {
-      display: block;
-      width: 100%;
-      margin-bottom: 10px;
-      padding: 8px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-      background-color: #333;
-      color: #fff;
-      font-size: 14px;
-    }
-    .form-popup button {
-      background-color: #4CAF50;
-      border: none;
-      cursor: pointer;
-      color: white;
-      font-weight: bold;
-    }
-    #preview {
-      display: none;
-      max-width: 100%;
-      margin-top: 10px;
-    }
-    .static-info {
-      background-color: #fff;
-      color: #000;
-      padding: 6px;
-      border-radius: 8px;
-      margin-bottom: 10px;
-      font-size: 14px;
-      word-break: break-word;
-      white-space: pre-wrap;
-    }
-    .custom-div-icon div {
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      border: 3px solid white;
-      box-shadow: 0 0 6px rgba(0,0,0,0.4);
-    }
   </style>
 </head>
 <body>
-  <div class="sidebar">
+  <button class="menu-toggle" onclick="toggleMenu()">☰ Меню</button>
+  <div class="sidebar" id="sidebar">
     <div class="profile">
       <img id="avatarDisplay" src="" style="display:none">
       <div id="userName"></div>
@@ -126,6 +93,10 @@
   </div>
   <div id="map"></div>
   <script>
+    function toggleMenu() {
+      document.getElementById('sidebar').classList.toggle('active');
+    }
+
     const userDataKey = "travelMapUser";
     const markerDataKey = "travelMapMarkers";
 
