@@ -1,237 +1,94 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Travel Map Social</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <meta charset="UTF-8" />
+  <title>Travel Map</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
-    body, html {
+    html, body {
       margin: 0;
-      padding: 0;
       height: 100%;
-      font-family: 'Segoe UI', sans-serif;
-      display: flex;
-      background-color: #f0f2f5;
-    }
-    #sidebar {
-      width: 250px;
-      background-color: #1e1e2f;
-      color: white;
-      padding: 20px;
-      box-sizing: border-box;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      font-size: 16px;
-    }
-    #sidebar h2 {
-      margin-top: 0;
-      font-weight: 700;
-    }
-    #sidebar button {
-      padding: 10px;
-      background-color: #2c2c40;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-weight: 500;
-      transition: background-color 0.3s;
-    }
-    #sidebar button:hover {
-      background-color: #3d3d5c;
+      font-family: sans-serif;
     }
     #map {
-      flex-grow: 1;
       height: 100vh;
-      z-index: 1;
+      width: 100%;
     }
-    .popup {
+    #form {
       position: absolute;
       top: 20px;
-      left: 280px;
+      left: 20px;
       background: white;
       padding: 15px;
-      border-radius: 12px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
       z-index: 1000;
       display: none;
-      width: 320px;
     }
-    input, textarea, select {
+    #form input, #form textarea, #form button {
+      display: block;
       width: 100%;
-      margin-top: 10px;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+    #form button {
+      background: #4CAF50;
+      color: white;
+      border: none;
       padding: 10px;
-      font-size: 14px;
-      border: 1px solid #ccc;
+      cursor: pointer;
       border-radius: 6px;
-      background-color: #2e2e38;
-      color: #fff;
-    }
-    input::placeholder, textarea::placeholder {
-      color: #999;
-    }
-    button.save {
-      background: #27ae60;
-      margin-top: 10px;
-    }
-    button.save:hover {
-      background: #1e8449;
-    }
-    button {
-      font-size: 14px;
-    }
-    #mediaPreview img, #mediaPreview video {
-      max-width: 80px;
-      margin: 5px;
-      border-radius: 6px;
-    }
-    .leaflet-container {
-      z-index: 0;
     }
   </style>
 </head>
 <body>
-  <div id="sidebar">
-    <h2>Travel Map</h2>
-    <div id="userInfo">Здравствуйте, гость</div>
-    <button onclick="showSection('profile')">Профиль</button>
-    <button onclick="showSection('friends')">Друзья</button>
-    <button onclick="showSection('trips')">Путешествия</button>
-  </div>
-
   <div id="map"></div>
 
-  <div id="formPopup" class="popup">
-    <h3>Добавить метку</h3>
+  <div id="form">
     <input type="text" id="placeName" placeholder="Название места" />
     <input type="date" id="visitDate" />
     <textarea id="comment" placeholder="Комментарий"></textarea>
-    <select id="markerType">
-      <option value="visited">Был</option>
-      <option value="planned">Планирую</option>
-    </select>
-    <select id="markerColor">
-      <option value="red">Красный</option>
-      <option value="green">Зелёный</option>
-      <option value="blue">Синий</option>
-      <option value="orange">Оранжевый</option>
-      <option value="purple">Фиолетовый</option>
-    </select>
-    <input type="file" id="mediaInput" multiple accept="image/*,video/*" />
-    <div id="mediaPreview"></div>
-    <button class="save" onclick="saveMarker()">Сохранить</button>
+    <button onclick="saveMarker()">Сохранить</button>
     <button onclick="closeForm()">Отмена</button>
   </div>
 
-  <div id="profilePopup" class="popup">
-    <h3>Профиль</h3>
-    <input type="text" id="userName" placeholder="Имя" />
-    <input type="number" id="userAge" placeholder="Возраст" />
-    <textarea id="userComment" placeholder="О себе"></textarea>
-    <input type="file" id="avatarInput" accept="image/*" />
-    <div id="avatarPreview"></div>
-    <button class="save" onclick="saveProfile()">Сохранить</button>
-    <button onclick="closePopup('profilePopup')">Закрыть</button>
-  </div>
-
-  <div id="friendsPopup" class="popup">
-    <h3>Друзья</h3>
-    <input type="text" placeholder="Поиск по email или имени" />
-    <div>Здесь будет список друзей</div>
-    <button onclick="closePopup('friendsPopup')">Закрыть</button>
-  </div>
-
-  <div id="tripsPopup" class="popup">
-    <h3>Путешествия</h3>
-    <div>
-      <input type="text" id="tripName" placeholder="Название путешествия">
-      <button class="save" onclick="startTripRoute()">Начать маршрут</button>
-      <button onclick="closePopup('tripsPopup')">Закрыть</button>
-    </div>
-  </div>
-
   <script>
-    let map;
+    let map = L.map('map').setView([55.76, 37.64], 5); // Москва
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+    }).addTo(map);
+
     let currentLatLng = null;
-    let markers = [];
-    let currentTrip = null;
 
-    document.addEventListener("DOMContentLoaded", function () {
-      setTimeout(() => {
-        map = L.map('map').setView([55.7558, 37.6173], 5);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          maxZoom: 18
-        }).addTo(map);
-
-        map.on('click', function(e) {
-          currentLatLng = e.latlng;
-          console.log("Клик по карте: ", currentLatLng);
-          document.getElementById('formPopup').style.display = 'block';
-        });
-      }, 100);
+    map.on('click', function(e) {
+      currentLatLng = e.latlng;
+      document.getElementById('form').style.display = 'block';
     });
 
-    function closeForm() {
-      document.getElementById('formPopup').style.display = 'none';
-      document.getElementById('placeName').value = '';
-      document.getElementById('visitDate').value = '';
-      document.getElementById('comment').value = '';
-      document.getElementById('markerType').value = 'visited';
-      document.getElementById('markerColor').value = 'red';
-      document.getElementById('mediaInput').value = '';
-      document.getElementById('mediaPreview').innerHTML = '';
-    }
-
     function saveMarker() {
-      const placeName = document.getElementById('placeName').value;
-      const visitDate = document.getElementById('visitDate').value;
+      const name = document.getElementById('placeName').value;
+      const date = document.getElementById('visitDate').value;
       const comment = document.getElementById('comment').value;
-      const color = document.getElementById('markerColor').value;
-      const type = document.getElementById('markerType').value;
 
-      if (!placeName || !currentLatLng) {
-        alert('Заполните название и выберите точку.');
+      if (!name || !date) {
+        alert("Заполните название и дату");
         return;
       }
 
-      const marker = L.marker(currentLatLng, {
-        icon: L.divIcon({
-          className: 'custom-div-icon',
-          html: `<div style="background-color:${color};width:24px;height:24px;border-radius:50%;border:2px solid white;"></div>`,
-          iconSize: [30, 42],
-          iconAnchor: [15, 42]
-        })
-      }).addTo(map);
+      L.marker(currentLatLng).addTo(map)
+        .bindPopup(`<b>${name}</b><br>${date}<br>${comment}`).openPopup();
 
-      marker.bindPopup(`<strong>${placeName}</strong><br>Дата: ${visitDate}<br>${comment}<br>Тип: ${type}`);
-      markers.push(marker);
       closeForm();
     }
 
-    function showSection(section) {
-      closeAllPopups();
-      document.getElementById(section + 'Popup').style.display = 'block';
-    }
-
-    function closePopup(id) {
-      document.getElementById(id).style.display = 'none';
-    }
-
-    function closeAllPopups() {
-      ['formPopup','profilePopup','friendsPopup','tripsPopup'].forEach(id => closePopup(id));
-    }
-
-    function saveProfile() {
-      const name = document.getElementById('userName').value;
-      document.getElementById('userInfo').textContent = `Здравствуйте, ${name || 'гость'}`;
-      closePopup('profilePopup');
-    }
-
-    function startTripRoute() {
-      alert("Создание маршрутов будет реализовано на следующем этапе.");
+    function closeForm() {
+      document.getElementById('form').style.display = 'none';
+      document.getElementById('placeName').value = '';
+      document.getElementById('visitDate').value = '';
+      document.getElementById('comment').value = '';
     }
   </script>
 </body>
