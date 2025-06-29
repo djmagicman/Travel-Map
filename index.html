@@ -45,6 +45,7 @@
     }
     #map {
       flex-grow: 1;
+      height: 100vh;
       z-index: 1;
     }
     .popup {
@@ -180,7 +181,6 @@
     }
 
     function saveMarker() {
-      console.log("Попытка сохранить метку");
       const placeName = document.getElementById('placeName').value;
       const visitDate = document.getElementById('visitDate').value;
       const comment = document.getElementById('comment').value;
@@ -203,7 +203,6 @@
 
       marker.bindPopup(`<strong>${placeName}</strong><br>Дата: ${visitDate}<br>${comment}<br>Тип: ${type}`);
       markers.push(marker);
-      console.log("Метка добавлена: ", marker);
       closeForm();
     }
 
