@@ -129,7 +129,7 @@
       </select>
       <input type="file" id="photoInput" accept="image/*" />
       <img id="preview" src="" />
-      <button onclick="saveMarker()">Сохранить</button>
+      <button id="saveBtn">Сохранить</button>
       <button onclick="closeForm()">Отмена</button>
     </div>
   </div>
@@ -142,6 +142,7 @@
     }).addTo(map);
 
     let markers = [];
+    let currentMarker = null;
 
     map.on('click', async function (e) {
       const lat = e.latlng.lat.toFixed(5);
@@ -158,23 +159,17 @@
       document.getElementById('preview').style.display = 'none';
       document.getElementById('photoInput').value = '';
 
-      const marker = L.marker(e.latlng, {
+      if (currentMarker) map.removeLayer(currentMarker);
+      const color = document.getElementById('markerColor').value;
+      currentMarker = L.marker(e.latlng, {
         draggable: true,
-        icon: L.divIcon({ className: 'custom-div-icon', html: `<div style="background:${document.getElementById('markerColor').value}"></div>` })
+        icon: L.divIcon({ className: 'custom-div-icon', html: `<div style="background:${color}"></div>` })
       }).addTo(map);
-
-      marker.on('click', function () {
-        openEditForm(marker);
-      });
-
-      markers.push({ marker, data: null });
-      marker._index = markers.length - 1;
     });
 
-    function saveMarker() {
-      const active = markers.find(m => m.marker._icon.classList.contains('leaflet-clickable'));
-      if (!active) return;
-
+    document.getElementById('saveBtn').addEventListener('click', () => {
+      if (!currentMarker) return;
+      const latlng = currentMarker.getLatLng();
       const title = document.getElementById('tripTitle').value;
       const date = document.getElementById('visitDate').value;
       const comment = document.getElementById('comment').value;
@@ -184,47 +179,43 @@
       const coord = document.getElementById('coordInfo').textContent;
       const imgFile = document.getElementById('photoInput').files[0];
 
-      let imgURL = '';
+      const saveData = (imgURL = '') => {
+        const popupContent = `<b>${title || ''}</b><br>${place}<br>${coord}<br><i>${comment}</i><br>${imgURL ? `<img src="${imgURL}" style="max-width:100%; margin-top:5px;"/>` : ''}`;
+        currentMarker.bindPopup(popupContent).openPopup();
+        currentMarker.setIcon(L.divIcon({ className: 'custom-div-icon', html: `<div style="background:${color}"></div>` }));
+        currentMarker.data = { title, date, comment, type, color, place, coord, imgURL };
+        currentMarker.on('click', () => openEditForm(currentMarker));
+        markers.push(currentMarker);
+        currentMarker = null;
+        closeForm();
+      };
+
       if (imgFile) {
         const reader = new FileReader();
-        reader.onload = function (e) {
-          imgURL = e.target.result;
-          applyData();
-        }
+        reader.onload = e => saveData(e.target.result);
         reader.readAsDataURL(imgFile);
       } else {
-        applyData();
+        saveData();
       }
-
-      function applyData() {
-        const popupContent = `<b>${title || ''}</b><br>${place}<br>${coord}<br><i>${comment}</i><br><img src="${imgURL}" style="max-width:100%; margin-top:5px;"/>`;
-        active.marker.bindPopup(popupContent);
-        active.marker.setIcon(L.divIcon({ className: 'custom-div-icon', html: `<div style="background:${color}"></div>` }));
-        active.data = { title, date, comment, type, color, place, coord, imgURL };
-        document.getElementById('form').style.display = 'none';
-      }
-    }
+    });
 
     function openEditForm(marker) {
-      const found = markers.find(m => m.marker === marker);
-      if (!found || !found.data) return;
-
-      document.getElementById('tripTitle').value = found.data.title;
-      document.getElementById('visitDate').value = found.data.date;
-      document.getElementById('comment').value = found.data.comment;
-      document.getElementById('tripType').value = found.data.type;
-      document.getElementById('markerColor').value = found.data.color;
-      document.getElementById('placeInfo').textContent = found.data.place;
-      document.getElementById('coordInfo').textContent = found.data.coord;
-
-      if (found.data.imgURL) {
-        document.getElementById('preview').src = found.data.imgURL;
+      if (!marker.data) return;
+      document.getElementById('tripTitle').value = marker.data.title;
+      document.getElementById('visitDate').value = marker.data.date;
+      document.getElementById('comment').value = marker.data.comment;
+      document.getElementById('tripType').value = marker.data.type;
+      document.getElementById('markerColor').value = marker.data.color;
+      document.getElementById('placeInfo').textContent = marker.data.place;
+      document.getElementById('coordInfo').textContent = marker.data.coord;
+      if (marker.data.imgURL) {
+        document.getElementById('preview').src = marker.data.imgURL;
         document.getElementById('preview').style.display = 'block';
       } else {
         document.getElementById('preview').style.display = 'none';
       }
-
       document.getElementById('form').style.display = 'block';
+      currentMarker = marker;
     }
 
     function closeForm() {
