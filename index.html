@@ -27,7 +27,7 @@
       z-index: 1000;
       display: none;
     }
-    #form input, #form textarea, #form button {
+    #form input, #form textarea, #form select, #form button {
       display: block;
       width: 100%;
       margin-bottom: 10px;
@@ -50,12 +50,28 @@
     <input type="text" id="placeName" placeholder="Название места" />
     <input type="date" id="visitDate" />
     <textarea id="comment" placeholder="Комментарий"></textarea>
+    <select id="tripType">
+      <option value="visited">Был</option>
+      <option value="planned">Планирую</option>
+    </select>
+    <select id="markerColor">
+      <option value="red">Красный</option>
+      <option value="green">Зелёный</option>
+      <option value="blue">Синий</option>
+      <option value="orange">Оранжевый</option>
+      <option value="purple">Фиолетовый</option>
+      <option value="yellow">Жёлтый</option>
+      <option value="pink">Розовый</option>
+      <option value="gray">Серый</option>
+      <option value="brown">Коричневый</option>
+      <option value="black">Чёрный</option>
+    </select>
     <button onclick="saveMarker()">Сохранить</button>
     <button onclick="closeForm()">Отмена</button>
   </div>
 
   <script>
-    let map = L.map('map').setView([55.76, 37.64], 5); // Москва
+    let map = L.map('map').setView([55.76, 37.64], 5);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
@@ -72,14 +88,23 @@
       const name = document.getElementById('placeName').value;
       const date = document.getElementById('visitDate').value;
       const comment = document.getElementById('comment').value;
+      const tripType = document.getElementById('tripType').value;
+      const color = document.getElementById('markerColor').value;
 
-      if (!name || !date) {
-        alert("Заполните название и дату");
+      if (!name || !date || !currentLatLng) {
+        alert("Заполните все поля и выберите точку на карте");
         return;
       }
 
-      L.marker(currentLatLng).addTo(map)
-        .bindPopup(`<b>${name}</b><br>${date}<br>${comment}`).openPopup();
+      const icon = L.divIcon({
+        className: 'custom-div-icon',
+        html: `<div style="background-color:${color};width:20px;height:20px;border-radius:50%;border:2px solid white;"></div>`,
+        iconSize: [30, 42],
+        iconAnchor: [15, 42]
+      });
+
+      L.marker(currentLatLng, { icon }).addTo(map)
+        .bindPopup(`<b>${name}</b><br>${date}<br>${comment}<br>Тип: ${tripType}`).openPopup();
 
       closeForm();
     }
@@ -89,6 +114,8 @@
       document.getElementById('placeName').value = '';
       document.getElementById('visitDate').value = '';
       document.getElementById('comment').value = '';
+      document.getElementById('tripType').value = 'visited';
+      document.getElementById('markerColor').value = 'red';
     }
   </script>
 </body>
