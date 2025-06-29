@@ -44,6 +44,17 @@
       cursor: pointer;
       font-size: 16px;
     }
+    .profile {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .profile img {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      object-fit: cover;
+      margin-bottom: 10px;
+    }
     .form-popup {
       background: #fff;
       border-radius: 15px;
@@ -100,131 +111,76 @@
 </head>
 <body>
   <div class="sidebar">
-    <div>
-      <button onclick="showProfile()">Профиль</button>
-      <button onclick="showFriends()">Друзья</button>
-      <button onclick="showTrips()">Путешествия</button>
+    <div class="profile">
+      <img id="avatarDisplay" src="" style="display:none">
+      <div id="userName"></div>
     </div>
-    <div id="form" class="form-popup" style="display:none">
-      <div id="placeInfo" class="static-info"></div>
-      <div id="coordInfo" class="static-info"></div>
-      <input type="text" id="tripTitle" placeholder="Название путешествия (необязательно)" />
-      <input type="date" id="visitDate">
-      <textarea id="comment" placeholder="Комментарий"></textarea>
-      <select id="tripType">
-        <option value="visited">Был</option>
-        <option value="planned">Планирую</option>
-      </select>
-      <select id="markerColor">
-        <option value="red">Красный</option>
-        <option value="green">Зелёный</option>
-        <option value="blue">Синий</option>
-        <option value="orange">Оранжевый</option>
-        <option value="purple">Фиолетовый</option>
-        <option value="yellow">Жёлтый</option>
-        <option value="pink">Розовый</option>
-        <option value="gray">Серый</option>
-        <option value="brown">Коричневый</option>
-        <option value="black">Чёрный</option>
-      </select>
-      <input type="file" id="photoInput" accept="image/*" />
-      <img id="preview" src="" />
-      <button id="saveBtn">Сохранить</button>
-      <button onclick="closeForm()">Отмена</button>
+    <div>
+      <button onclick="alert('Функция профиля скоро появится')">Профиль</button>
+      <button onclick="alert('Функция друзей скоро появится')">Друзья</button>
+      <button onclick="alert('Путешествия скоро появятся')">Путешествия</button>
+    </div>
+    <div>
+      <small>TravelMap © 2025</small>
     </div>
   </div>
   <div id="map"></div>
-
   <script>
-    const map = L.map('map').setView([55.751244, 37.618423], 5);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: 'Map data © <a href="https://openstreetmap.org">OpenStreetMap</a> contributors'
-    }).addTo(map);
+    const userDataKey = "travelMapUser";
+    const markerDataKey = "travelMapMarkers";
 
-    let markers = [];
-    let currentMarker = null;
+    function saveUserDataToLocalStorage(data) {
+      localStorage.setItem(userDataKey, JSON.stringify(data));
+    }
+    function getUserDataFromLocalStorage() {
+      return JSON.parse(localStorage.getItem(userDataKey) || '{}');
+    }
+    function saveMarkersToLocalStorage(markers) {
+      localStorage.setItem(markerDataKey, JSON.stringify(markers));
+    }
+    function getMarkersFromLocalStorage() {
+      return JSON.parse(localStorage.getItem(markerDataKey) || '[]');
+    }
 
-    map.on('click', async function (e) {
-      const lat = e.latlng.lat.toFixed(5);
-      const lng = e.latlng.lng.toFixed(5);
-      document.getElementById('coordInfo').textContent = `Координаты: ${lat}, ${lng}`;
-      const locationName = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`)
-        .then(res => res.json())
-        .then(data => data.address.city || data.address.town || data.address.village || data.display_name);
-      document.getElementById('placeInfo').textContent = locationName;
-      document.getElementById('form').style.display = 'block';
-      document.getElementById('tripTitle').value = '';
-      document.getElementById('visitDate').value = '';
-      document.getElementById('comment').value = '';
-      document.getElementById('preview').style.display = 'none';
-      document.getElementById('photoInput').value = '';
+    const existingUser = getUserDataFromLocalStorage();
+    if (!existingUser.email || !existingUser.password) {
+      const email = prompt("Введите Email:");
+      const password = prompt("Введите пароль:");
+      saveUserDataToLocalStorage({ email, password });
+    }
 
-      if (currentMarker) map.removeLayer(currentMarker);
-      const color = document.getElementById('markerColor').value;
-      currentMarker = L.marker(e.latlng, {
-        draggable: true,
-        icon: L.divIcon({ className: 'custom-div-icon', html: `<div style="background:${color}"></div>` })
+    const storedUser = getUserDataFromLocalStorage();
+    document.addEventListener('DOMContentLoaded', () => {
+      if (storedUser.name) {
+        document.getElementById('userName').textContent = storedUser.name;
+        if (storedUser.avatarURL) {
+          document.getElementById('avatarDisplay').src = storedUser.avatarURL;
+          document.getElementById('avatarDisplay').style.display = 'block';
+        }
+      }
+
+      const map = L.map('map').setView([55.751244, 37.618423], 5);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
       }).addTo(map);
+
+      const savedMarkers = getMarkersFromLocalStorage();
+      savedMarkers.forEach(({ lat, lng, popup }) => {
+        L.marker([lat, lng]).addTo(map).bindPopup(popup);
+      });
+
+      map.on('click', function(e) {
+        const lat = e.latlng.lat.toFixed(6);
+        const lng = e.latlng.lng.toFixed(6);
+        const popupText = prompt("Введите описание для этой точки:");
+        if (popupText) {
+          const marker = L.marker([lat, lng]).addTo(map).bindPopup(popupText);
+          const allMarkers = getMarkersFromLocalStorage();
+          allMarkers.push({ lat, lng, popup: popupText });
+          saveMarkersToLocalStorage(allMarkers);
+        }
+      });
     });
-
-    document.getElementById('saveBtn').addEventListener('click', () => {
-      if (!currentMarker) return;
-      const latlng = currentMarker.getLatLng();
-      const title = document.getElementById('tripTitle').value;
-      const date = document.getElementById('visitDate').value;
-      const comment = document.getElementById('comment').value;
-      const type = document.getElementById('tripType').value;
-      const color = document.getElementById('markerColor').value;
-      const place = document.getElementById('placeInfo').textContent;
-      const coord = document.getElementById('coordInfo').textContent;
-      const imgFile = document.getElementById('photoInput').files[0];
-
-      const saveData = (imgURL = '') => {
-        const popupContent = `<b>${title || ''}</b><br>${place}<br>${coord}<br><i>${comment}</i><br>${imgURL ? `<img src="${imgURL}" style="max-width:100%; margin-top:5px;"/>` : ''}`;
-        currentMarker.bindPopup(popupContent).openPopup();
-        currentMarker.setIcon(L.divIcon({ className: 'custom-div-icon', html: `<div style="background:${color}"></div>` }));
-        currentMarker.data = { title, date, comment, type, color, place, coord, imgURL };
-        currentMarker.on('click', () => openEditForm(currentMarker));
-        markers.push(currentMarker);
-        currentMarker = null;
-        closeForm();
-      };
-
-      if (imgFile) {
-        const reader = new FileReader();
-        reader.onload = e => saveData(e.target.result);
-        reader.readAsDataURL(imgFile);
-      } else {
-        saveData();
-      }
-    });
-
-    function openEditForm(marker) {
-      if (!marker.data) return;
-      document.getElementById('tripTitle').value = marker.data.title;
-      document.getElementById('visitDate').value = marker.data.date;
-      document.getElementById('comment').value = marker.data.comment;
-      document.getElementById('tripType').value = marker.data.type;
-      document.getElementById('markerColor').value = marker.data.color;
-      document.getElementById('placeInfo').textContent = marker.data.place;
-      document.getElementById('coordInfo').textContent = marker.data.coord;
-      if (marker.data.imgURL) {
-        document.getElementById('preview').src = marker.data.imgURL;
-        document.getElementById('preview').style.display = 'block';
-      } else {
-        document.getElementById('preview').style.display = 'none';
-      }
-      document.getElementById('form').style.display = 'block';
-      currentMarker = marker;
-    }
-
-    function closeForm() {
-      document.getElementById('form').style.display = 'none';
-    }
-
-    function showProfile() { alert("Профиль в разработке."); }
-    function showFriends() { alert("Друзья в разработке."); }
-    function showTrips() { alert("Путешествия в разработке."); }
   </script>
 </body>
 </html>
