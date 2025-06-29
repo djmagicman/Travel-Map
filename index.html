@@ -1,59 +1,79 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <title>Travel Map</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Travel Map Social</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
     html, body {
       margin: 0;
+      padding: 0;
       height: 100%;
-      font-family: sans-serif;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f2f2f2;
     }
     #map {
       height: 100vh;
       width: 100%;
     }
-    #form {
+    .form-popup, .menu {
       position: absolute;
       top: 20px;
       left: 20px;
-      background: white;
+      background: #fff;
+      border-radius: 15px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
       padding: 15px;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.2);
       z-index: 1000;
-      display: none;
     }
-    #form input, #form textarea, #form select, #form button {
+    .form-popup input, .form-popup textarea, .form-popup select, .form-popup button {
       display: block;
       width: 100%;
       margin-bottom: 10px;
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      background-color: #333;
+      color: #fff;
       font-size: 14px;
     }
-    #form button {
-      background: #4CAF50;
-      color: white;
+    .form-popup button {
+      background-color: #4CAF50;
       border: none;
-      padding: 10px;
       cursor: pointer;
-      border-radius: 6px;
+      color: white;
+      font-weight: bold;
     }
     #preview {
+      display: none;
       max-width: 100%;
-      margin-top: 5px;
+      margin-top: 10px;
+    }
+    .menu {
+      left: auto;
+      right: 20px;
+    }
+    .menu button {
+      background-color: #555;
+      color: #fff;
+      border: none;
+      margin: 5px 0;
+      padding: 10px;
+      border-radius: 10px;
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
   <div id="map"></div>
 
-  <div id="form">
-    <input type="text" id="placeName" placeholder="Название места" readonly />
+  <div class="form-popup" id="form" style="display:none">
+    <input type="text" id="placeName" placeholder="Название местности" readonly />
     <input type="text" id="coords" placeholder="Координаты" readonly />
-    <input type="date" id="visitDate" />
+    <input type="text" id="tripTitle" placeholder="Название путешествия (необязательно)" />
+    <input type="date" id="visitDate">
     <textarea id="comment" placeholder="Комментарий"></textarea>
     <select id="tripType">
       <option value="visited">Был</option>
@@ -72,28 +92,25 @@
       <option value="black">Чёрный</option>
     </select>
     <input type="file" id="photoInput" accept="image/*" />
-    <img id="preview" src="" style="display:none;"/>
+    <img id="preview" src="" />
     <button onclick="saveMarker()">Сохранить</button>
     <button onclick="closeForm()">Отмена</button>
   </div>
 
+  <div class="menu">
+    <button onclick="alert('Профиль скоро будет доступен')">Профиль</button>
+    <button onclick="alert('Друзья скоро будут добавлены')">Друзья</button>
+    <button onclick="alert('Путешествия скоро доступны')">Путешествия</button>
+  </div>
+
   <script>
     let map = L.map('map').setView([55.76, 37.64], 5);
-
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
     }).addTo(map);
 
     let currentLatLng = null;
     let currentMarker = null;
-
-    function getPlaceName(latlng) {
-      fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latlng.lat}&lon=${latlng.lng}`)
-        .then(res => res.json())
-        .then(data => {
-          document.getElementById('placeName').value = data.display_name || '';
-        });
-    }
 
     map.on('click', function(e) {
       currentLatLng = e.latlng;
@@ -103,21 +120,21 @@
 
       if (currentMarker) map.removeLayer(currentMarker);
 
-      const icon = L.divIcon({
-        className: 'custom-div-icon',
-        html: `<div style="background-color:#777;width:20px;height:20px;border-radius:50%;border:2px solid white;"></div>`,
-        iconSize: [30, 42],
-        iconAnchor: [15, 42]
-      });
-
-      currentMarker = L.marker(e.latlng, { icon, draggable: true }).addTo(map);
-
+      currentMarker = L.marker(e.latlng, { draggable: true }).addTo(map);
       currentMarker.on('dragend', function(ev) {
         currentLatLng = ev.target.getLatLng();
         document.getElementById('coords').value = `${currentLatLng.lat.toFixed(5)}, ${currentLatLng.lng.toFixed(5)}`;
         getPlaceName(currentLatLng);
       });
     });
+
+    function getPlaceName(latlng) {
+      fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latlng.lat}&lon=${latlng.lng}`)
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById('placeName').value = data.display_name || '';
+        });
+    }
 
     document.getElementById('photoInput').addEventListener('change', function(event) {
       const file = event.target.files[0];
@@ -138,6 +155,7 @@
       const tripType = document.getElementById('tripType').value;
       const color = document.getElementById('markerColor').value;
       const imageSrc = document.getElementById('preview').src;
+      const tripTitle = document.getElementById('tripTitle').value;
 
       if (!name || !date || !currentLatLng) {
         alert("Заполните все поля и выберите точку на карте");
@@ -154,25 +172,19 @@
       const marker = L.marker(currentLatLng, { icon, draggable: true }).addTo(map);
 
       marker.bindPopup(
-        `<b>${name}</b><br>${date}<br>${comment}<br>Тип: ${tripType}<br>` +
+        `<b>${tripTitle ? tripTitle + ' — ' : ''}${name}</b><br>${date}<br>${comment}<br>Тип: ${tripType}<br>` +
         (imageSrc ? `<img src="${imageSrc}" style="max-width:100px;margin-top:5px;" />` : '')
       );
 
-      marker.on('mouseover', function () {
-        marker.openPopup();
-      });
-      marker.on('mouseout', function () {
-        marker.closePopup();
-      });
+      marker.on('mouseover', function () { marker.openPopup(); });
+      marker.on('mouseout', function () { marker.closePopup(); });
 
       closeForm();
     }
 
     function closeForm() {
       document.getElementById('form').style.display = 'none';
-      document.getElementById('placeName').value = '';
-      document.getElementById('visitDate').value = '';
-      document.getElementById('comment').value = '';
+      ['placeName', 'coords', 'tripTitle', 'visitDate', 'comment'].forEach(id => document.getElementById(id).value = '');
       document.getElementById('tripType').value = 'visited';
       document.getElementById('markerColor').value = 'red';
       document.getElementById('photoInput').value = '';
