@@ -101,9 +101,9 @@
 <body>
   <div class="sidebar">
     <div>
-      <button onclick="alert('Профиль скоро будет доступен')">Профиль</button>
-      <button onclick="alert('Друзья скоро будут добавлены')">Друзья</button>
-      <button onclick="alert('Путешествия скоро доступны')">Путешествия</button>
+      <button onclick="showProfile()">Профиль</button>
+      <button onclick="showFriends()">Друзья</button>
+      <button onclick="showTrips()">Путешествия</button>
     </div>
     <div id="form" class="form-popup" style="display:none">
       <div id="placeInfo" class="static-info"></div>
@@ -136,7 +136,104 @@
   <div id="map"></div>
 
   <script>
-    // (оставляем прежний JS код без изменений)
+    const map = L.map('map').setView([55.751244, 37.618423], 5);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: 'Map data © <a href="https://openstreetmap.org">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    let markers = [];
+
+    map.on('click', async function (e) {
+      const lat = e.latlng.lat.toFixed(5);
+      const lng = e.latlng.lng.toFixed(5);
+      document.getElementById('coordInfo').textContent = `Координаты: ${lat}, ${lng}`;
+      const locationName = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`)
+        .then(res => res.json())
+        .then(data => data.address.city || data.address.town || data.address.village || data.display_name);
+      document.getElementById('placeInfo').textContent = locationName;
+      document.getElementById('form').style.display = 'block';
+      document.getElementById('tripTitle').value = '';
+      document.getElementById('visitDate').value = '';
+      document.getElementById('comment').value = '';
+      document.getElementById('preview').style.display = 'none';
+      document.getElementById('photoInput').value = '';
+
+      const marker = L.marker(e.latlng, {
+        draggable: true,
+        icon: L.divIcon({ className: 'custom-div-icon', html: `<div style="background:${document.getElementById('markerColor').value}"></div>` })
+      }).addTo(map);
+
+      marker.on('click', function () {
+        openEditForm(marker);
+      });
+
+      markers.push({ marker, data: null });
+      marker._index = markers.length - 1;
+    });
+
+    function saveMarker() {
+      const active = markers.find(m => m.marker._icon.classList.contains('leaflet-clickable'));
+      if (!active) return;
+
+      const title = document.getElementById('tripTitle').value;
+      const date = document.getElementById('visitDate').value;
+      const comment = document.getElementById('comment').value;
+      const type = document.getElementById('tripType').value;
+      const color = document.getElementById('markerColor').value;
+      const place = document.getElementById('placeInfo').textContent;
+      const coord = document.getElementById('coordInfo').textContent;
+      const imgFile = document.getElementById('photoInput').files[0];
+
+      let imgURL = '';
+      if (imgFile) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          imgURL = e.target.result;
+          applyData();
+        }
+        reader.readAsDataURL(imgFile);
+      } else {
+        applyData();
+      }
+
+      function applyData() {
+        const popupContent = `<b>${title || ''}</b><br>${place}<br>${coord}<br><i>${comment}</i><br><img src="${imgURL}" style="max-width:100%; margin-top:5px;"/>`;
+        active.marker.bindPopup(popupContent);
+        active.marker.setIcon(L.divIcon({ className: 'custom-div-icon', html: `<div style="background:${color}"></div>` }));
+        active.data = { title, date, comment, type, color, place, coord, imgURL };
+        document.getElementById('form').style.display = 'none';
+      }
+    }
+
+    function openEditForm(marker) {
+      const found = markers.find(m => m.marker === marker);
+      if (!found || !found.data) return;
+
+      document.getElementById('tripTitle').value = found.data.title;
+      document.getElementById('visitDate').value = found.data.date;
+      document.getElementById('comment').value = found.data.comment;
+      document.getElementById('tripType').value = found.data.type;
+      document.getElementById('markerColor').value = found.data.color;
+      document.getElementById('placeInfo').textContent = found.data.place;
+      document.getElementById('coordInfo').textContent = found.data.coord;
+
+      if (found.data.imgURL) {
+        document.getElementById('preview').src = found.data.imgURL;
+        document.getElementById('preview').style.display = 'block';
+      } else {
+        document.getElementById('preview').style.display = 'none';
+      }
+
+      document.getElementById('form').style.display = 'block';
+    }
+
+    function closeForm() {
+      document.getElementById('form').style.display = 'none';
+    }
+
+    function showProfile() { alert("Профиль в разработке."); }
+    function showFriends() { alert("Друзья в разработке."); }
+    function showTrips() { alert("Путешествия в разработке."); }
   </script>
 </body>
 </html>
