@@ -8,41 +8,408 @@
 <!-- Google Fonts: Poppins for modern look -->
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300,400,600,700&display=swap" rel="stylesheet">
 <!-- FontAwesome for icons -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" integrity="sha512-..." crossorigin="anonymous" referrerpolicy="no-referrer" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
 <!-- Leaflet CSS -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
 <style>
-  /* Ваши стили остаются прежними, просто добавим несколько стилей для профиля и погоды */
-  
-  #profileModal {
-    display: none;
-    position: fixed;
-    top: 0;
+  :root {
+    --primary-color: #4CAF50; /* Green */
+    --primary-dark-color: #388E3C;
+    --secondary-color: #2196F3; /* Blue */
+    --accent-color: #FFC107; /* Amber */
+    --danger-color: #F44336; /* Red */
+    --text-color: #333;
+    --bg-light: #f8f8f8;
+    --bg-dark: rgba(255, 255, 255, 0.95);
+    --border-radius: 8px;
+    --box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    font-family: 'Poppins', sans-serif;
+    color: var(--text-color);
+    overflow: hidden; /* Prevent scrolling on main page */
+  }
+
+  #map {
+    position: absolute;
+    top: 0; bottom: 0; left: 0; right: 0;
+    height: 100%;
+    width: 100%;
+    z-index: 0;
+  }
+
+  #controls {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    background: var(--bg-dark);
+    padding: 20px;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    max-width: 320px;
+    z-index: 1000;
+    transition: transform 0.3s ease-in-out, left 0.3s ease-in-out;
+    transform: translateX(0); /* Default position */
+  }
+
+  #controls.hidden {
+    transform: translateX(calc(-100% - 25px)); /* Hide off-screen */
+  }
+
+  #toggleControlsBtn {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    background: var(--primary-color);
+    color: white;
+    padding: 10px 15px;
+    border-radius: var(--border-radius);
+    text-align: center;
+    cursor: pointer;
+    box-shadow: var(--box-shadow);
+    z-index: 1001;
+    display: none; /* Hidden by default when controls are visible */
+    transition: left 0.3s ease-in-out;
+  }
+
+  #controls.hidden + #toggleControlsBtn {
+    left: 15px; /* Adjust if controls are hidden */
+    display: block;
+  }
+  #toggleControlsBtn i {
+      margin-right: 5px;
+  }
+
+  h2 {
+    margin-top: 0;
+    color: var(--primary-dark-color);
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  label {
+    display: block;
+    margin-top: 10px;
+    margin-bottom: 5px;
+    font-weight: 600;
+    color: var(--text-color);
+  }
+
+  input[type="text"], input[type="color"], input[type="number"], textarea, button {
+    font-size: 1rem;
+    padding: 10px 15px;
+    margin-bottom: 10px;
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid #ddd;
+    border-radius: var(--border-radius);
+    transition: all 0.3s ease;
+  }
+  textarea {
+      resize: vertical;
+      min-height: 80px;
+  }
+
+  input[type="text"]:focus, input[type="color"]:focus, input[type="number"]:focus, textarea:focus {
+    border-color: var(--secondary-color);
+    box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.2);
+    outline: none;
+  }
+
+  button {
+    cursor: pointer;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    font-weight: 600;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  }
+
+  button:hover {
+    background-color: var(--primary-dark-color);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  }
+
+  button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  }
+
+  #loginBtn, #logoutBtn {
+    background-color: var(--secondary-color);
+  }
+  #loginBtn:hover, #logoutBtn:hover {
+    background-color: #1976D2; /* Darker blue */
+  }
+
+  #logoutBtn {
+    background-color: var(--danger-color);
+  }
+  #logoutBtn:hover {
+      background-color: #D32F2F; /* Darker red */
+  }
+
+  #profileBtn {
+      background-color: var(--accent-color);
+      color: var(--text-color);
+      font-weight: bold;
+  }
+  #profileBtn:hover {
+      background-color: #FFB300; /* Darker amber */
+      color: white;
+  }
+
+  #userInfo {
+    margin-bottom: 15px;
+    text-align: center;
+    font-weight: 600;
+    color: var(--primary-dark-color);
+  }
+
+  .autocomplete-container {
+    position: relative;
+    width: 100%;
+  }
+
+  #suggestions {
+    border: 1px solid #eee;
+    max-height: 150px;
+    overflow-y: auto;
+    background: white;
+    position: absolute;
+    z-index: 1001;
+    width: 100%;
     left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.8);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  }
+  #suggestions div {
+    padding: 10px 15px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+  #suggestions div:hover {
+    background-color: #f0f0f0;
+  }
+
+  /* Popup Styles for Leaflet */
+  .leaflet-popup-content-wrapper {
+    border-radius: var(--border-radius);
+    padding: 0; /* Remove default padding */
+  }
+  
+  .leaflet-popup-content {
+      margin: 0;
+      padding: 15px;
+      font-family: 'Poppins', sans-serif;
+      text-align: center;
+  }
+  
+  .leaflet-popup-content b {
+      display: block;
+      margin-bottom: 15px;
+      font-size: 1.1em;
+      color: var(--primary-dark-color);
+  }
+  
+  .leaflet-popup-content input {
+      width: 100%; /* Make comment input full width */
+      margin-top: 10px;
+  }
+  
+  /* Comments Section Styles */
+  .comments-section {
+      margin-top: 10px;
+      max-height: 100px;
+      overflow-y: auto;
+      text-align: left;
+      border-top: 1px solid #eee;
+      padding-top: 10px;
+  }
+  
+  .comment {
+      border-bottom: 1px solid #eee;
+      padding: 5px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+  }
+  .comment:last-child {
+      border-bottom: none;
+  }
+  .comment-text {
+      flex-grow: 1;
+  }
+  .comment-actions button {
+    background: none;
+    border: none;
+    color: var(--danger-color);
+    padding: 0 5px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    width: auto;
+    margin-bottom: 0px;
+  }
+    .comment-actions button:hover {
+        text-decoration: underline;
+    }
+
+  /* Notifications */
+  #notification-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 2000;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+  }
+
+  .notification {
+      background-color: var(--primary-color);
+      color: white;
+      padding: 10px 20px;
+      border-radius: var(--border-radius);
+      box-shadow: var(--box-shadow);
+      opacity: 0;
+      transform: translateY(-20px);
+      animation: fadeInOut 4s forwards; /* 4s: 0.5s fade in, 3s display, 0.5s fade out */
+  }
+
+  .notification.error {
+      background-color: var(--danger-color);
+  }
+
+  @keyframes fadeInOut {
+      0% { opacity: 0; transform: translateY(-20px); }
+      10% { opacity: 1; transform: translateY(0); }
+      90% { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(-20px); }
+  }
+
+  /* Profile Modal */
+  .modal {
+    display: none; /* Hidden by default */
+    position: fixed; /* Stay in place */
+    z-index: 2000; /* Sit on top */
+    left: 0;
+    top: 0;
+    width: 100%; /* Full width */
+    height: 100%; /* Full height */
+    overflow: auto; /* Enable scroll if needed */
+    background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
     justify-content: center;
     align-items: center;
   }
 
-  .profile-content {
-    background: white;
+  .modal-content {
+    background-color: var(--bg-dark);
+    margin: auto;
     padding: 20px;
-    border-radius: 8px;
-    width: 300px;
+    border-radius: var(--border-radius);
+    position: relative;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: var(--box-shadow);
+    animation-name: animatetop;
+    animation-duration: 0.4s;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
   }
 
-  .weather-info {
+  @keyframes animatetop {
+    from {top: -300px; opacity: 0}
+    to {top: 0; opacity: 1}
+  }
+
+  .close-button {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    position: absolute;
+    top: 10px;
+    right: 20px;
+  }
+
+  .close-button:hover,
+  .close-button:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .modal-content h3 {
+      text-align: center;
+      margin-top: 0;
+      color: var(--primary-dark-color);
+  }
+
+  .profile-avatar-container {
+      text-align: center;
+      margin-bottom: 20px;
+  }
+  .profile-avatar {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid var(--primary-color);
+      box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+  }
+  .profile-avatar-upload label {
+      display: inline-block;
+      background-color: var(--secondary-color);
+      color: white;
+      padding: 8px 15px;
+      border-radius: var(--border-radius);
+      cursor: pointer;
+      font-weight: normal;
+      font-size: 0.9rem;
+      margin-top: 10px;
+      transition: background-color 0.2s;
+  }
+  .profile-avatar-upload label:hover {
+      background-color: #1976D2;
+  }
+  .profile-avatar-upload input[type="file"] {
+      display: none;
+  }
+
+  #weatherInfo {
     position: absolute;
     top: 15px;
     right: 15px;
     background: var(--bg-dark);
-    padding: 10px;
+    padding: 15px;
     border-radius: var(--border-radius);
-    display: none;
+    box-shadow: var(--box-shadow);
+    z-index: 1000;
+    color: var(--text-color);
+    font-size: 0.95em;
+    min-width: 180px;
+    display: none; /* Initially hidden */
+  }
+
+  #weatherInfo strong {
+    display: block;
+    margin-bottom: 5px;
+    color: var(--primary-dark-color);
+  }
+  #weatherInfo img {
+    vertical-align: middle;
+    margin-right: 5px;
   }
 </style>
 </head>
@@ -56,8 +423,8 @@
   <h2><i class="fas fa-map-marked-alt"></i> Travel Map</h2>
   <div id="userInfo"></div>
   <button id="loginBtn"><i class="fab fa-google"></i> Войти через Google</button>
+  <button id="profileBtn" style="display:none;"><i class="fas fa-user-circle"></i> Профиль</button>
   <button id="logoutBtn" style="display:none;"><i class="fas fa-sign-out-alt"></i> Выйти</button>
-  <button id="profileBtn" style="display:none;"><i class="fas fa-user"></i> Профиль</button>
 
   <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
 
@@ -70,33 +437,48 @@
   <label for="colorInput">Цвет метки:</label>
   <input type="color" id="colorInput" value="#4CAF50" />
 
-  <button id="addBtn">
+  <button id="addBtn" style="display:none;">
       <span id="addBtnText"><i class="fas fa-plus-circle"></i> Добавить метку</span>
-      <span id="addBtnLoader" class="loader"></span>
+      <span id="addBtnLoader" class="loader" style="display:none;"></span>
   </button>
 </div>
 
 <div id="map"></div>
-<div class="weather-info" id="weatherInfo"></div>
+
+<div id="weatherInfo">
+    <strong>Погода:</strong>
+    <div id="weatherDetails"></div>
+</div>
 
 <div id="notification-container"></div>
 
 <!-- Profile Modal -->
-<div id="profileModal">
-  <div class="profile-content">
-    <h3>Профиль</h3>
-    <label for="avatarInput">Аватарка:</label>
-    <input type="file" id="avatarInput" accept="image/*" />
-    <label for="nameInput">Имя:</label>
-    <input type="text" id="nameInput" placeholder="Введите ваше имя" />
-    <label for="ageInput">Возраст:</label>
-    <input type="text" id="ageInput" placeholder="Введите ваш возраст" />
-    <label for="factsInput">Факты о себе:</label>
-    <textarea id="factsInput" placeholder="Расскажите о себе"></textarea>
-    <button id="saveProfileBtn">Сохранить</button>
-    <button id="closeProfileBtn">Закрыть</button>
-  </div>
+<div id="profileModal" class="modal">
+    <div class="modal-content">
+        <span class="close-button">&times;</span>
+        <h3><i class="fas fa-user-circle"></i> Мой Профиль</h3>
+        
+        <div class="profile-avatar-container">
+            <img id="profileAvatar" class="profile-avatar" src="https://via.placeholder.com/120?text=Аватар" alt="Аватар">
+            <div class="profile-avatar-upload">
+                <label for="avatarUpload"><i class="fas fa-camera"></i> Загрузить аватар</label>
+                <input type="file" id="avatarUpload" accept="image/*">
+            </div>
+        </div>
+
+        <label for="profileName">Имя:</label>
+        <input type="text" id="profileName" placeholder="Ваше имя">
+
+        <label for="profileAge">Возраст:</label>
+        <input type="number" id="profileAge" min="1" max="120" placeholder="Ваш возраст">
+
+        <label for="profileFacts">О себе:</label>
+        <textarea id="profileFacts" placeholder="Интересные факты о вас..."></textarea>
+
+        <button id="saveProfileBtn"><i class="fas fa-save"></i> Сохранить Профиль</button>
+    </div>
 </div>
+
 
 <!-- Leaflet JS -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -119,11 +501,21 @@
     where,
     getDocs,
     updateDoc,
-    doc
+    deleteDoc,
+    doc,
+    getDoc,
+    arrayUnion,
+    arrayRemove
   } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+  import {
+      getStorage,
+      ref,
+      uploadBytes,
+      getDownloadURL
+  } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-storage.js";
 
   const firebaseConfig = {
-    apiKey: "AIzaSyB0c7llONI831LKFmqTIH6393ZD4ZjBOZY",
+    apiKey: "YOUR_FIREBASE_API_KEY", // <--- ЗАМЕНИТЕ НА ВАШ API КЛЮЧ
     authDomain: "travel-map-f3677.firebaseapp.com",
     projectId: "travel-map-f3677",
     storageBucket: "travel-map-f3677.firebasestorage.app",
@@ -132,23 +524,39 @@
     measurementId: "G-M8L8K1DL29"
   };
 
+  const WEATHER_API_KEY = "YOUR_OPENWEATHERMAP_API_KEY"; // <--- ЗАМЕНИТЕ НА ВАШ API КЛЮЧ OpenWeatherMap
+
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db = getFirestore(app);
-  
-  const weatherInfo = document.getElementById("weatherInfo");
+  const storage = getStorage(app);
+
+  const loginBtn = document.getElementById("loginBtn");
+  const logoutBtn = document.getElementById("logoutBtn");
+  const profileBtn = document.getElementById("profileBtn");
+  const userInfo = document.getElementById("userInfo");
   const cityInput = document.getElementById("cityInput");
   const colorInput = document.getElementById("colorInput");
   const addBtn = document.getElementById("addBtn");
-  const profileBtn = document.getElementById("profileBtn");
+  const addBtnText = document.getElementById("addBtnText");
+  const addBtnLoader = document.getElementById("addBtnLoader");
+  const suggestionsDiv = document.getElementById("suggestions");
+  const controlsDiv = document.getElementById("controls");
+  const toggleControlsBtn = document.getElementById("toggleControlsBtn");
+  const notificationContainer = document.getElementById("notification-container");
+  const weatherInfoDiv = document.getElementById("weatherInfo");
+  const weatherDetailsDiv = document.getElementById("weatherDetails");
+
+  // Profile Modal Elements
   const profileModal = document.getElementById("profileModal");
-  const closeProfileBtn = document.getElementById("closeProfileBtn");
+  const closeProfileModalBtn = profileModal.querySelector(".close-button");
+  const profileAvatar = document.getElementById("profileAvatar");
+  const avatarUpload = document.getElementById("avatarUpload");
+  const profileNameInput = document.getElementById("profileName");
+  const profileAgeInput = document.getElementById("profileAge");
+  const profileFactsInput = document.getElementById("profileFacts");
   const saveProfileBtn = document.getElementById("saveProfileBtn");
-  const avatarInput = document.getElementById("avatarInput");
-  const nameInput = document.getElementById("nameInput");
-  const ageInput = document.getElementById("ageInput");
-  const factsInput = document.getElementById("factsInput");
-  
+
   const map = L.map("map").setView([55.751244, 37.618423], 5);
 
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -158,68 +566,199 @@
 
   let markers = [];
   let selectedCity = null;
-  const provider = new GoogleAuthProvider();
+  let typingTimer;
+  const doneTypingInterval = 500; // 0.5 seconds
 
-  // Weather API configuration
-  async function fetchWeather(lat, lon) {
-    const apiKey = "YOUR_WEATHER_API_KEY";  // Place your Weather API key here
-    const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&lang=ru&units=metric`;
+  // --- Функции для меток ---
 
-    const response = await fetch(url);
-    const data = await response.json();
+  // Создает контент для попапа метки
+  function createPopupContent(cityName, currentColor, idDoc, commentList, markerInstance, markerOwnerId) {
+    const container = document.createElement("div");
 
-    return data;
+    const title = document.createElement("b");
+    title.textContent = cityName;
+    container.appendChild(title);
+
+    // Только владелец метки может менять цвет и добавлять/удалять свои комментарии
+    const currentUser = auth.currentUser;
+    const isOwner = currentUser && currentUser.uid === markerOwnerId;
+
+    if (isOwner) {
+        const colorPickerLabel = document.createElement("label");
+        colorPickerLabel.style.display = 'block';
+        colorPickerLabel.style.marginTop = '10px';
+        colorPickerLabel.textContent = "Цвет метки:";
+        container.appendChild(colorPickerLabel);
+
+        const colorPicker = document.createElement("input");
+        colorPicker.type = "color";
+        colorPicker.value = currentColor;
+        container.appendChild(colorPicker);
+
+        colorPicker.onchange = async () => {
+            const newColor = colorPicker.value;
+            await updateMarkerColor(idDoc, newColor);
+            markerInstance.setStyle({ color: newColor });
+        };
+    } else {
+        const colorDisplay = document.createElement("div");
+        colorDisplay.style.cssText = `height: 15px; width: 15px; background-color: ${currentColor}; border-radius: 50%; display: inline-block; vertical-align: middle; margin-right: 5px;`;
+        container.appendChild(document.createTextNode("Цвет метки: "));
+        container.appendChild(colorDisplay);
+        container.appendChild(document.createElement("br"));
+    }
+
+    // Comment input (доступен для всех авторизованных пользователей)
+    if (currentUser) {
+        const commentInput = document.createElement("input");
+        commentInput.type = "text";
+        commentInput.placeholder = "Ваш комментарий...";
+        commentInput.style.marginTop = '10px';
+        container.appendChild(commentInput);
+
+        // Button to add comment
+        const addCommentBtn = document.createElement("button");
+        addCommentBtn.textContent = "Добавить комментарий";
+        addCommentBtn.style.marginTop = '5px';
+        container.appendChild(addCommentBtn);
+
+        addCommentBtn.onclick = async () => {
+          const commentText = commentInput.value.trim();
+          if (commentText) {
+            const userName = currentUser.displayName || "Аноним";
+            const newComment = {
+                text: commentText,
+                userId: currentUser.uid,
+                userName: userName,
+                timestamp: Date.now()
+            }
+            await addCommentToMarker(idDoc, newComment);
+            commentInput.value = ""; // Clear input
+            loadCommentsForMarker(idDoc, commentsSection); // Reload comments
+          }
+        };
+    } else {
+         const loginToComment = document.createElement("p");
+         loginToComment.textContent = "Войдите, чтобы оставлять комментарии.";
+         loginToComment.style.fontSize = "0.9em";
+         loginToComment.style.color = "#777";
+         container.appendChild(loginToComment);
+    }
+
+
+    // Comments section
+    const commentsSection = document.createElement("div");
+    commentsSection.classList.add("comments-section");
+    container.appendChild(commentsSection);
+
+    // Load comments initially
+    loadCommentsForMarker(idDoc, commentsSection);
+
+    return container;
   }
 
-  // Function to show weather based on clicked location
-  map.on('click', async (e) => {
-    const { lat, lng } = e.latlng;
-    const weatherData = await fetchWeather(lat, lng);
+  // Загружает комментарии для метки
+  async function loadCommentsForMarker(docId, commentsSection) {
+    const docRef = doc(db, "markers", docId);
+    const docSnap = await getDoc(docRef);
+    const data = docSnap.data();
+    commentsSection.innerHTML = ''; // Clear previous comments
 
-    // Display weather info
-    weatherInfo.innerHTML = `<strong>Погода в этом месте:</strong><br>${weatherData.weather[0].description}<br>Температура: ${weatherData.main.temp}°C`;
-    weatherInfo.style.display = 'block';
-    weatherInfo.style.left = `${e.originalEvent.pageX}px`;
-    weatherInfo.style.top = `${e.originalEvent.pageY}px`;
-  });
+    const currentUser = auth.currentUser;
 
-  // Show the profile modal
-  profileBtn.addEventListener('click', () => {
-    profileModal.style.display = 'flex';
-  });
+    if (data.comments && data.comments.length > 0) {
+      data.comments.sort((a, b) => a.timestamp - b.timestamp); // Sort by time
+      data.comments.forEach(comment => {
+        const commentDiv = document.createElement("div");
+        commentDiv.classList.add("comment");
+        
+        const commentTextSpan = document.createElement("span");
+        commentTextSpan.classList.add("comment-text");
+        commentTextSpan.textContent = `[${comment.userName}]: ${comment.text}`;
+        commentDiv.appendChild(commentTextSpan);
 
-  // Close the profile modal
-  closeProfileBtn.addEventListener('click', () => {
-    profileModal.style.display = 'none';
-  });
-
-  // Save profile data
-  saveProfileBtn.addEventListener('click', () => {
-    const avatar = avatarInput.files[0];
-    const name = nameInput.value;
-    const age = ageInput.value;
-    const facts = factsInput.value;
-
-    // Here you'd generally save the profile info into Firestore
-    // For the sake of this mockup, we'll just log it
-    console.log({ avatar, name, age, facts });
-
-    profileModal.style.display = 'none';
-  });
-
-  // Auth state change event
-  onAuthStateChanged(auth, user => {
-    if (user) {
-      profileBtn.style.display = "inline-block";
-      // Load user-specific markers
-      loadUserMarkers(user.uid);
+        if (currentUser && currentUser.uid === comment.userId) {
+            const actionsDiv = document.createElement("div");
+            actionsDiv.classList.add("comment-actions");
+            const deleteBtn = document.createElement("button");
+            deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
+            deleteBtn.title = "Удалить комментарий";
+            deleteBtn.onclick = async () => {
+                await removeCommentFromMarker(docId, comment);
+                loadCommentsForMarker(docId, commentsSection); // Reload comments
+            };
+            actionsDiv.appendChild(deleteBtn);
+            commentDiv.appendChild(actionsDiv);
+        }
+        
+        commentsSection.appendChild(commentDiv);
+      });
     } else {
-      profileBtn.style.display = "none";
-      clearMarkers();
+      const noCommentsDiv = document.createElement("div");
+      noCommentsDiv.textContent = "Пока нет комментариев.";
+      commentsSection.appendChild(noCommentsDiv);
     }
-  });
-  
-  // Загрузка меток пользователя
+  }
+
+  // Добавляет комментарий к метке
+  async function addCommentToMarker(docId, commentObject) {
+    try {
+      const docRef = doc(db, "markers", docId);
+      await updateDoc(docRef, {comments: arrayUnion(commentObject)});
+      showNotification("Комментарий добавлен!");
+    } catch (e) {
+      showNotification("Ошибка при добавлении комментария: " + e.message, true);
+    }
+  }
+
+    // Удаляет комментарий из метки
+  async function removeCommentFromMarker(docId, commentObject) {
+    try {
+      const docRef = doc(db, "markers", docId);
+      await updateDoc(docRef, {comments: arrayRemove(commentObject)});
+      showNotification("Комментарий удален!");
+    } catch (e) {
+      showNotification("Ошибка при удалении комментария: " + e.message, true);
+    }
+  }
+
+  // Обновляет цвет метки
+  async function updateMarkerColor(docId, newColor) {
+      try {
+          const docRef = doc(db, "markers", docId);
+          await updateDoc(docRef, { color: newColor });
+          showNotification("Цвет метки обновлен!");
+      } catch (e) {
+          showNotification("Ошибка при обновлении цвета метки: " + e.message, true);
+      }
+  }
+
+  // Сохраняет метку в Firestore
+  async function saveMarker(userId, cityName, lat, lon, color) {
+    try {
+      const docRef = await addDoc(collection(db, "markers"), {
+        userId,
+        cityName,
+        lat,
+        lon,
+        color,
+        createdAt: new Date().toISOString(), // Use ISO string for consistent sorting
+        comments: [] // Initialize comments array
+      });
+      return docRef.id;
+    } catch (e) {
+      showNotification("Ошибка при сохранении метки: " + e.message, true);
+    }
+    return null;
+  }
+
+  // Очищает все метки с карты
+  function clearMarkers() {
+    markers.forEach(({marker}) => map.removeLayer(marker));
+    markers = [];
+  }
+
+  // Загружает метки текущего пользователя
   async function loadUserMarkers(userId) {
     clearMarkers();
     const markersQuery = query(
@@ -228,34 +767,395 @@
     );
 
     try {
-      const querySnapshot = await getDocs(markersQuery);
-      querySnapshot.forEach(docSnap => {
-        const data = docSnap.data();
-        const idDoc = docSnap.id;
+        const querySnapshot = await getDocs(markersQuery);
+        
+        if (querySnapshot.empty) {
+            showNotification("У вас пока нет меток. Добавьте первую!");
+        }
 
-        const marker = L.circleMarker([data.lat, data.lon], {
-          color: data.color,
+        querySnapshot.forEach(docSnap => {
+          const data = docSnap.data();
+          const idDoc = docSnap.id;
+
+          const marker = L.circleMarker([data.lat, data.lon], {
+            color: data.color,
+            radius: 8,
+            fillOpacity: 0.7,
+            weight: 2,
+            opacity: 0.8
+          }).addTo(map);
+
+          marker.bindPopup(createPopupContent(data.cityName, data.color, idDoc, data.comments, marker, data.userId)); // Pass comments and ownerId
+
+          markers.push({ idDoc, marker, data });
+        });
+        showNotification("Ваши метки загружены!");
+
+    } catch (e) {
+        showNotification("Ошибка при загрузке меток: " + e.message, true);
+    }
+  }
+
+  // --- Функции для профиля ---
+  async function saveUserProfile(userId, data) {
+      try {
+          const userDocRef = doc(db, "users", userId);
+          await updateDoc(userDocRef, data, { merge: true }); // Merge ensures it updates existing fields or adds new ones
+          showNotification("Профиль сохранен!");
+      } catch (e) {
+          showNotification("Ошибка при сохранении профиля: " + e.message, true);
+      }
+  }
+
+  async function loadUserProfile(userId) {
+      try {
+          const userDocRef = doc(db, "users", userId);
+          const docSnap = await getDoc(userDocRef);
+          if (docSnap.exists()) {
+              const data = docSnap.data();
+              profileNameInput.value = data.name || '';
+              profileAgeInput.value = data.age || '';
+              profileFactsInput.value = data.facts || '';
+              profileAvatar.src = data.avatarUrl || 'https://via.placeholder.com/120?text=Аватар';
+          } else {
+              // If no profile exists, set defaults
+              profileNameInput.value = auth.currentUser.displayName || '';
+              profileAgeInput.value = '';
+              profileFactsInput.value = '';
+              profileAvatar.src = auth.currentUser.photoURL || 'https://via.placeholder.com/120?text=Аватар';
+          }
+      } catch (e) {
+          showNotification("Ошибка при загрузке профиля: " + e.message, true);
+      }
+  }
+
+  async function uploadAvatar(userId, file) {
+      try {
+          const avatarRef = ref(storage, `avatars/${userId}/${file.name}`);
+          const snapshot = await uploadBytes(avatarRef, file);
+          const downloadURL = await getDownloadURL(snapshot.ref);
+          await saveUserProfile(userId, { avatarUrl: downloadURL });
+          profileAvatar.src = downloadURL;
+          showNotification("Аватар загружен!");
+          return downloadURL;
+      } catch (e) {
+          showNotification("Ошибка при загрузке аватара: " + e.message, true);
+          return null;
+      }
+  }
+
+  // --- Функции для погоды ---
+  async function getWeather(lat, lon) {
+    if (!WEATHER_API_KEY || WEATHER_API_KEY === "YOUR_OPENWEATHERMAP_API_KEY") {
+        console.warn("OpenWeatherMap API Key не установлен. Погода не будет отображаться.");
+        showNotification("Пожалуйста, установите свой OpenWeatherMap API Key для отображения погоды.", true);
+        return null;
+    }
+    const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${WEATHER_API_KEY}&units=metric&lang=ru`;
+    try {
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`Ошибка HTTP: ${response.status}`);
+        }
+        const data = await response.json();
+        return data;
+    } catch (e) {
+        console.error("Ошибка при получении погоды:", e);
+        showNotification(`Не удалось получить данные о погоде: ${e.message}`, true);
+        return null;
+    }
+  }
+
+  function displayWeather(weatherData) {
+      if (!weatherData) {
+          weatherInfoDiv.style.display = 'none';
+          return;
+      }
+      weatherInfoDiv.style.display = 'block';
+      const city = weatherData.name;
+      const temp = Math.round(weatherData.main.temp);
+      const description = weatherData.weather[0].description;
+      const iconCode = weatherData.weather[0].icon;
+      const iconUrl = `http://openweathermap.org/img/wn/${iconCode}.png`;
+
+      weatherDetailsDiv.innerHTML = `
+          <p><strong>${city}</strong></p>
+          <img src="${iconUrl}" alt="${description}" /> ${description}, ${temp}°C
+      `;
+  }
+
+  // --- Уведомления ---
+  function showNotification(message, isError = false) {
+    const notification = document.createElement("div");
+    notification.textContent = message;
+    notification.classList.add("notification");
+    if (isError) {
+      notification.classList.add("error");
+    }
+    notificationContainer.appendChild(notification);
+
+    setTimeout(() => {
+      notification.remove();
+    }, 4000); // 4 seconds (matching animation duration)
+  }
+
+  // --- Обработчики событий ---
+
+  // City Autocomplete Input
+  cityInput.addEventListener("input", () => {
+    clearTimeout(typingTimer);
+    const val = cityInput.value.trim();
+    if (val.length < 2) {
+      suggestionsDiv.innerHTML = "";
+      suggestionsDiv.style.display = "none";
+      selectedCity = null;
+      return;
+    }
+    typingTimer = setTimeout(async () => {
+      const cities = await fetchCities(val);
+      suggestionsDiv.innerHTML = "";
+      if (cities.length > 0) {
+        suggestionsDiv.style.display = "block";
+        cities.forEach(city => {
+          const div = document.createElement("div");
+          div.textContent = city.display_name;
+          div.addEventListener("click", () => {
+            cityInput.value = city.display_name;
+            selectedCity = {
+              name: city.display_name,
+              lat: parseFloat(city.lat),
+              lon: parseFloat(city.lon)
+            };
+            suggestionsDiv.innerHTML = "";
+            suggestionsDiv.style.display = "none";
+          });
+          suggestionsDiv.appendChild(div);
+        });
+      } else {
+        suggestionsDiv.style.display = "none";
+      }
+    }, doneTypingInterval);
+  });
+
+  // Fetch cities from Nominatim API
+  async function fetchCities(query) {
+    if (!query) return [];
+    const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=8&accept-language=ru&q=${encodeURIComponent(query)}`;
+    try {
+      const res = await fetch(url);
+      const data = await res.json();
+      return data.filter(item => {
+        const allowedTypes = ["city", "town", "village", "hamlet", "suburb"];
+        return allowedTypes.includes(item.type) || (item.class === "place" && item.type === "administrative");
+      });
+    } catch (e) {
+      showNotification("Ошибка при поиске городов.", true);
+      return [];
+    }
+  }
+
+
+  // Toggle Controls (Sidebar)
+  toggleControlsBtn.addEventListener('click', () => {
+      controlsDiv.classList.toggle('hidden');
+      if (controlsDiv.classList.contains('hidden')) {
+          toggleControlsBtn.innerHTML = '<i class="fas fa-bars"></i>';
+          toggleControlsBtn.style.left = '15px';
+      } else {
+          toggleControlsBtn.innerHTML = '<i class="fas fa-times"></i>'; // Change icon to close
+          // Position next to controls after they are visible to accurately get width
+          setTimeout(() => {
+              toggleControlsBtn.style.left = controlsDiv.offsetWidth + 30 + 'px';
+          }, 0); 
+      }
+  });
+
+  // Show/Hide toggle button based on controls visibility
+  controlsDiv.addEventListener('transitionend', () => {
+      if (controlsDiv.classList.contains('hidden')) {
+          toggleControlsBtn.style.display = 'block';
+      } else {
+          toggleControlsBtn.style.display = 'none';
+      }
+  });
+
+
+  // Login event
+  loginBtn.addEventListener("click", () => {
+    signInWithPopup(auth, new GoogleAuthProvider())
+      .then((result) => {
+        showNotification(`Добро пожаловать, ${result.user.displayName}!`);
+      })
+      .catch(e => {
+        showNotification("Ошибка входа: " + e.message, true);
+      });
+  });
+
+  // Logout event
+  logoutBtn.addEventListener("click", () => {
+    signOut(auth)
+      .then(() => {
+        showNotification("Вы вышли из аккаунта.");
+        clearMarkers(); // Clear markers when logged out
+        weatherInfoDiv.style.display = 'none'; // Hide weather info on logout
+      })
+      .catch(e => {
+        showNotification("Ошибка выхода: " + e.message, true);
+      });
+  });
+
+  // Auth state change event
+  onAuthStateChanged(auth, user => {
+    if (user) {
+      userInfo.textContent = `Привет, ${user.displayName}`;
+      loginBtn.style.display = "none";
+      logoutBtn.style.display = "inline-block";
+      profileBtn.style.display = "inline-block"; // Show profile button
+      addBtn.style.display = "flex"; // Show add button for logged in users
+      loadUserMarkers(user.uid); // Load ONLY user's markers
+    } else {
+      userInfo.textContent = "Войдите, чтобы сохранять метки.";
+      loginBtn.style.display = "inline-block";
+      logoutBtn.style.display = "none";
+      profileBtn.style.display = "none"; // Hide profile button
+      addBtn.style.display = "none"; // Hide add button for logged out users
+      clearMarkers(); // Clear all markers
+      weatherInfoDiv.style.display = 'none'; // Hide weather info on logout
+    }
+  });
+
+  // Add marker button
+  addBtn.addEventListener("click", async () => {
+    addBtnLoader.style.display = 'inline-block';
+    addBtnText.style.display = 'none';
+
+    const color = colorInput.value;
+
+    if (!selectedCity) {
+      showNotification("Пожалуйста, выберите город из списка предложений.", true);
+      addBtnLoader.style.display = 'none';
+      addBtnText.style.display = 'inline';
+      return;
+    }
+
+    const user = auth.currentUser;
+    if (!user) {
+      showNotification("Сначала войдите в аккаунт.", true);
+      addBtnLoader.style.display = 'none';
+      addBtnText.style.display = 'inline';
+      return;
+    }
+
+    const docId = await saveMarker(
+      user.uid,
+      selectedCity.name,
+      selectedCity.lat,
+      selectedCity.lon,
+      color
+    );
+
+    if (docId) { // If save was successful
+        const marker = L.circleMarker([selectedCity.lat, selectedCity.lon], {
+          color: color,
           radius: 8,
           fillOpacity: 0.7,
           weight: 2,
           opacity: 0.8
         }).addTo(map);
 
-        marker.bindPopup(createPopupContent(data.cityName, data.color, idDoc, marker));
-        markers.push({ idDoc, marker, data });
-      });
-    } catch (e) {
-      showNotification("Ошибка при загрузке меток: " + e.message, true);
+        // Fetch the new marker data to pass to createPopupContent, including the current comments state
+        const markerDoc = await getDoc(doc(db, "markers", docId));
+        const markerData = markerDoc.data();
+        marker.bindPopup(createPopupContent(markerData.cityName, markerData.color, docId, markerData.comments, marker, markerData.userId)).openPopup();
+
+        markers.push({ idDoc: docId, marker, data: {
+          cityName: selectedCity.name,
+          lat: selectedCity.lat,
+          lon: selectedCity.lon,
+          color: color,
+          userId: user.uid,
+          comments: [] // Newly added marker starts with no comments
+        }});
+
+        map.setView([selectedCity.lat, selectedCity.lon], 10);
+        showNotification(`Метка для ${selectedCity.name} добавлена!`);
     }
-  }
 
-  // Остальные функции (например, saveMarker, createPopupContent и т.д.) также остаются прежними. 
-  // Загрузка меток при входе, и так далее.
+    cityInput.value = "";
+    selectedCity = null; // Reset selected city
+    suggestionsDiv.innerHTML = "";
+    suggestionsDiv.style.display = "none";
 
-  // Запуск карты
-  map.setView([55.751244, 37.618423], 5);
+    addBtnLoader.style.display = 'none';
+    addBtnText.style.display = 'inline';
+  });
+
+    // --- Profile Modal Event Listeners ---
+    profileBtn.addEventListener("click", () => {
+        const user = auth.currentUser;
+        if (user) {
+            loadUserProfile(user.uid);
+            profileModal.style.display = "flex"; // Show modal
+        } else {
+            showNotification("Войдите в аккаунт, чтобы перейти в профиль.", true);
+        }
+    });
+
+    closeProfileModalBtn.addEventListener("click", () => {
+        profileModal.style.display = "none";
+    });
+
+    // Close modal if clicking outside
+    window.addEventListener("click", (event) => {
+        if (event.target === profileModal) {
+            profileModal.style.display = "none";
+        }
+    });
+
+    avatarUpload.addEventListener("change", async (event) => {
+        const file = event.target.files[0];
+        const user = auth.currentUser;
+        if (user && file) {
+            await uploadAvatar(user.uid, file);
+        }
+    });
+
+    saveProfileBtn.addEventListener("click", async () => {
+        const user = auth.currentUser;
+        if (user) {
+            const profileData = {
+                name: profileNameInput.value.trim(),
+                age: parseInt(profileAgeInput.value.trim()) || null,
+                facts: profileFactsInput.value.trim(),
+            };
+            await saveUserProfile(user.uid, profileData);
+            profileModal.style.display = "none";
+        }
+    });
+
+    // --- Weather Integration ---
+    map.on('click', async (e) => {
+        const { lat, lng } = e.latlng;
+        const weather = await getWeather(lat, lng);
+        displayWeather(weather);
+    });
+
+  // Initial state for toggle button
+  // Correctly calculate position after page load
+  window.addEventListener('load', () => {
+      if (!controlsDiv.classList.contains('hidden')) {
+          toggleControlsBtn.style.left = controlsDiv.offsetWidth + 30 + 'px';
+          toggleControlsBtn.innerHTML = '<i class="fas fa-times"></i>'; // Initial icon
+          // Hide it after a short delay so it doesn't appear briefly
+          setTimeout(() => {
+              toggleControlsBtn.style.display = 'none';
+          }, 50); 
+      } else {
+          toggleControlsBtn.style.display = 'block';
+          toggleControlsBtn.innerHTML = '<i class="fas fa-bars"></i>';
+      }
+  });
 
 </script>
 </body>
 </html>
-```
