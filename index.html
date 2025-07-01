@@ -1,3 +1,23 @@
+Ваш сайт — отличная основа для интерактивной карты! Чтобы улучшить его визуально и функционально, я предлагаю следующие улучшения:
+
+1.  **Визуальные улучшения:**
+    *   **Привлекательный шрифт и иконки:** Использование шрифтов из Google Fonts и иконок FontAwesome для улучшения внешнего вида.
+    *   **Современный дизайн кнопок и полей:** Округлые углы, тени, плавные переходы при наведении.
+    *   **Адаптивный дизайн:** Убедиться, что сайт хорошо смотрится на разных устройствах (мобильные, планшеты).
+    *   **Анимации:** Плавное появление или исчезновение элементов.
+    *   **Цветовая палитра:** Выбор гармоничной цветовой схемы.
+2.  **Функциональные улучшения:**
+    *   **Полное скрытие/показ панели управления:** Это позволит пользователю получить полный обзор карты.
+    *   **Поиск по городам улучшенный:** Автоматическое скрытие списка предложений при выборе города или потере фокуса.
+    *   **Уведомления для пользователя:** Использование всплывающих уведомлений (например, о добавлении метки, ошибке).
+    *   **Загрузка/спиннер:** Индикация загрузки данных с Firebase или при поиске городов.
+    *   **Подсказки для пользователя:** Небольшие инструкции при первом входе.
+    *   **Более интуитивное взаимодействие с метками:** Возможность добавлять описание к метке.
+
+Ниже я представляю доработанный код, который включает многие из этих улучшений.
+
+/begin_artifact('improved_travel_map_with_firebase.html', 'html')
+```html
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -5,20 +25,38 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Travel Map с Firebase</title>
 
+<!-- Google Fonts: Poppins for modern look -->
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300,400,600,700&display=swap" rel="stylesheet">
+<!-- FontAwesome for icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" integrity="sha512-..." crossorigin="anonymous" referrerpolicy="no-referrer" />
+
 <!-- Leaflet CSS -->
-<link
-  rel="stylesheet"
-  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
 <style>
-  html, body {
-    margin: 0; 
-    padding: 0; 
-    height: 100%; 
-    width: 100%;
-    font-family: Arial, sans-serif;
+  :root {
+    --primary-color: #4CAF50; /* Green */
+    --primary-dark-color: #388E3C;
+    --secondary-color: #2196F3; /* Blue */
+    --accent-color: #FFC107; /* Amber */
+    --danger-color: #F44336; /* Red */
+    --text-color: #333;
+    --bg-light: #f8f8f8;
+    --bg-dark: rgba(255, 255, 255, 0.95);
+    --border-radius: 8px;
+    --box-shadow: 0 4px 12px rgba(0,0,0,0.1);
   }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    font-family: 'Poppins', sans-serif;
+    color: var(--text-color);
+    overflow: hidden; /* Prevent scrolling on main page */
+  }
+
   #map {
     position: absolute;
     top: 0; bottom: 0; left: 0; right: 0;
@@ -26,65 +64,294 @@
     width: 100%;
     z-index: 0;
   }
+
   #controls {
     position: absolute;
-    top: 10px;
-    left: 10px;
-    background: rgba(255 255 255 / 0.9);
-    padding: 10px;
-    border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0,0,0,0.3);
-    max-width: 260px;
+    top: 15px;
+    left: 15px;
+    background: var(--bg-dark);
+    padding: 20px;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    max-width: 320px;
     z-index: 1000;
+    transition: transform 0.3s ease-in-out;
+    transform: translateX(0); /* Default position */
   }
-  input, button {
+
+  #controls.hidden {
+    transform: translateX(calc(-100% - 25px)); /* Hide off-screen */
+  }
+
+  #toggleControlsBtn {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    background: var(--primary-color);
+    color: white;
+    padding: 10px 15px;
+    border-radius: var(--border-radius);
+    text-align: center;
+    cursor: pointer;
+    box-shadow: var(--box-shadow);
+    z-index: 1001;
+    display: none; /* Hidden by default when controls are visible */
+    transition: left 0.3s ease-in-out;
+  }
+
+  #controls.hidden + #toggleControlsBtn {
+    left: 15px; /* Adjust if controls are hidden */
+    display: block;
+  }
+  #toggleControlsBtn i {
+      margin-right: 5px;
+  }
+
+
+  h2 {
+    margin-top: 0;
+    color: var(--primary-dark-color);
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  label {
+    display: block;
+    margin-top: 10px;
+    margin-bottom: 5px;
+    font-weight: 600;
+    color: var(--text-color);
+  }
+
+  input[type="text"], input[type="color"], button {
     font-size: 1rem;
-    padding: 6px;
-    margin: 4px 0;
+    padding: 10px 15px;
+    margin-bottom: 10px;
     width: 100%;
     box-sizing: border-box;
+    border: 1px solid #ddd;
+    border-radius: var(--border-radius);
+    transition: all 0.3s ease;
   }
+
+  input[type="text"]:focus, input[type="color"]:focus {
+    border-color: var(--secondary-color);
+    box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.2);
+    outline: none;
+  }
+
+  button {
+    cursor: pointer;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    font-weight: 600;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  }
+
+  button:hover {
+    background-color: var(--primary-dark-color);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  }
+
+  button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  }
+
+  #loginBtn, #logoutBtn {
+    background-color: var(--secondary-color);
+  }
+  #loginBtn:hover, #logoutBtn:hover {
+    background-color: #1976D2; /* Darker blue */
+  }
+
+  #logoutBtn {
+    background-color: var(--danger-color);
+  }
+  #logoutBtn:hover {
+      background-color: #D32F2F; /* Darker red */
+  }
+
+
   #userInfo {
-    margin-bottom: 10px;
+    margin-bottom: 15px;
+    text-align: center;
+    font-weight: 600;
+    color: var(--primary-dark-color);
   }
+
+  .autocomplete-container {
+    position: relative;
+    width: 100%;
+  }
+
   #suggestions {
-    border: 1px solid #ccc;
-    max-height: 120px;
+    border: 1px solid #eee;
+    max-height: 150px;
     overflow-y: auto;
     background: white;
     position: absolute;
     z-index: 1001;
     width: 100%;
     left: 0;
-    box-sizing: border-box;
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
   }
   #suggestions div {
-    padding: 6px;
+    padding: 10px 15px;
     cursor: pointer;
+    transition: background-color 0.2s ease;
   }
   #suggestions div:hover {
-    background-color: #ddd;
+    background-color: #f0f0f0;
   }
+
+  /* Styling for Leaflet Popups */
+  .leaflet-popup-content-wrapper {
+    border-radius: var(--border-radius);
+    padding: 0; /* Remove default padding */
+  }
+
+  .leaflet-popup-content {
+      margin: 0;
+      padding: 15px;
+      font-family: 'Poppins', sans-serif;
+      text-align: center;
+  }
+
+  .leaflet-popup-content b {
+      display: block;
+      margin-bottom: 15px;
+      font-size: 1.1em;
+      color: var(--primary-dark-color);
+  }
+
+  .leaflet-popup-content button {
+      width: auto; /* Buttons inside popup can be smaller */
+      margin: 5px 0;
+      padding: 8px 12px;
+      font-size: 0.9em;
+      border-radius: 5px;
+  }
+  .leaflet-popup-content button.edit-btn {
+      background-color: var(--secondary-color);
+  }
+  .leaflet-popup-content button.edit-btn:hover {
+      background-color: #1976D2;
+  }
+  .leaflet-popup-content button.delete-btn {
+      background-color: var(--danger-color);
+  }
+  .leaflet-popup-content button.delete-btn:hover {
+      background-color: #D32F2F;
+  }
+
+  .leaflet-popup-content input[type="color"] {
+      width: 100px;
+      height: 30px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      padding: 0;
+      cursor: pointer;
+      margin-top: 10px;
+      display: block; /* Ensures it takes full width within popup */
+      margin-left: auto;
+      margin-right: auto;
+  }
+
+  /* Notifications */
+  #notification-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 2000;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+  }
+
+  .notification {
+      background-color: var(--primary-color);
+      color: white;
+      padding: 10px 20px;
+      border-radius: var(--border-radius);
+      box-shadow: var(--box-shadow);
+      opacity: 0;
+      transform: translateY(-20px);
+      animation: fadeInOut 4s forwards; /* 4s: 0.5s fade in, 3s display, 0.5s fade out */
+  }
+
+  .notification.error {
+      background-color: var(--danger-color);
+  }
+
+  @keyframes fadeInOut {
+      0% { opacity: 0; transform: translateY(-20px); }
+      10% { opacity: 1; transform: translateY(0); }
+      90% { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(-20px); }
+  }
+
+  /* Spiner/Loading Indicator */
+  .loader {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid var(--primary-color);
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    animation: spin 1s linear infinite;
+    display: inline-block;
+    vertical-align: middle;
+    margin-left: 10px;
+    display: none;
+  }
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  #addBtn .loader { margin-left: 0; margin-right: 10px;}
+  #addBtn { display: flex; align-items: center; justify-content: center; }
+
 </style>
 </head>
 <body>
 
+<div id="toggleControlsBtn">
+    <i class="fas fa-bars"></i>
+</div>
+
 <div id="controls">
+  <h2><i class="fas fa-map-marked-alt"></i> Travel Map</h2>
   <div id="userInfo"></div>
-  <button id="loginBtn">Войти через Google</button>
-  <button id="logoutBtn" style="display:none;">Выйти</button>
-  
-  <label for="cityInput">Введите город:</label><br />
-  <input type="text" id="cityInput" autocomplete="off" />
-  <div id="suggestions"></div>
+  <button id="loginBtn"><i class="fab fa-google"></i> Войти через Google</button>
+  <button id="logoutBtn" style="display:none;"><i class="fas fa-sign-out-alt"></i> Выйти</button>
 
-  <label for="colorInput">Цвет метки:</label><br />
-  <input type="color" id="colorInput" value="#ff0000" />
+  <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
 
-  <button id="addBtn">Добавить метку</button>
+  <div class="autocomplete-container">
+      <label for="cityInput">Введите город:</label>
+      <input type="text" id="cityInput" autocomplete="off" placeholder="Например, Париж" />
+      <div id="suggestions"></div>
+  </div>
+
+  <label for="colorInput">Цвет метки:</label>
+  <input type="color" id="colorInput" value="#4CAF50" />
+
+  <button id="addBtn">
+      <span id="addBtnText"><i class="fas fa-plus-circle"></i> Добавить метку</span>
+      <span id="addBtnLoader" class="loader"></span>
+  </button>
 </div>
 
 <div id="map"></div>
+
+<div id="notification-container"></div>
 
 <!-- Leaflet JS -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -131,7 +398,12 @@
   const cityInput = document.getElementById("cityInput");
   const colorInput = document.getElementById("colorInput");
   const addBtn = document.getElementById("addBtn");
+  const addBtnText = document.getElementById("addBtnText");
+  const addBtnLoader = document.getElementById("addBtnLoader");
   const suggestionsDiv = document.getElementById("suggestions");
+  const controlsDiv = document.getElementById("controls");
+  const toggleControlsBtn = document.getElementById("toggleControlsBtn");
+  const notificationContainer = document.getElementById("notification-container");
 
   const map = L.map("map").setView([55.751244, 37.618423], 5);
 
@@ -140,71 +412,149 @@
     attribution: "© OpenStreetMap"
   }).addTo(map);
 
-  // Храним метки как объекты { idDoc, marker, data }
   let markers = [];
   let selectedCity = null;
+  let typingTimer;
+  const doneTypingInterval = 500; // 0.5 seconds
 
   function clearMarkers() {
     markers.forEach(({marker}) => map.removeLayer(marker));
     markers = [];
   }
 
+  function showNotification(message, isError = false) {
+    const notification = document.createElement("div");
+    notification.textContent = message;
+    notification.classList.add("notification");
+    if (isError) {
+      notification.classList.add("error");
+    }
+    notificationContainer.appendChild(notification);
+
+    setTimeout(() => {
+      notification.remove();
+    }, 4000); // 4 seconds (matching animation duration)
+  }
+
+  // Toggle Controls
+  toggleControlsBtn.addEventListener('click', () => {
+      controlsDiv.classList.toggle('hidden');
+      if (controlsDiv.classList.contains('hidden')) {
+          toggleControlsBtn.innerHTML = '<i class="fas fa-bars"></i>';
+          toggleControlsBtn.style.left = '15px';
+      } else {
+          toggleControlsBtn.innerHTML = '<i class="fas fa-times"></i>'; // Change icon to close
+          toggleControlsBtn.style.left = controlsDiv.offsetWidth + 30 + 'px'; // Position next to controls
+          setTimeout(() => toggleControlsBtn.style.display = 'none', 300); // Hide after transition
+      }
+  });
+
+  // Show toggle button when controls are hidden
+  controlsDiv.addEventListener('transitionend', () => {
+      if (controlsDiv.classList.contains('hidden')) {
+          toggleControlsBtn.style.display = 'block';
+      } else {
+          toggleControlsBtn.style.display = 'none';
+      }
+  });
+
+
   async function fetchCities(query) {
     if (!query) return [];
-    const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&accept-language=ru&q=${encodeURIComponent(query)}`;
+    const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=8&accept-language=ru&q=${encodeURIComponent(query)}`;
     try {
       const res = await fetch(url);
       const data = await res.json();
       return data.filter(item => {
-        return item.type === "city" || item.type === "town" || item.type === "village";
+        // Filter for specific types that are cities/towns/villages
+        const allowedTypes = ["city", "town", "village", "hamlet", "suburb"];
+        return allowedTypes.includes(item.type) || (item.class === "place" && item.type === "administrative");
       });
     } catch (e) {
+      showNotification("Ошибка при поиске городов.", true);
       return [];
+    } finally {
+        // Hide loader if any for search input
     }
   }
 
-  cityInput.addEventListener("input", async () => {
+  cityInput.addEventListener("input", () => {
+    clearTimeout(typingTimer);
     const val = cityInput.value.trim();
-    suggestionsDiv.innerHTML = "";
-    selectedCity = null;
-    if (val.length < 2) return;
-    const cities = await fetchCities(val);
-    cities.forEach(city => {
-      const div = document.createElement("div");
-      div.textContent = city.display_name;
-      div.addEventListener("click", () => {
-        cityInput.value = city.display_name;
-        selectedCity = {
-          name: city.display_name,
-          lat: parseFloat(city.lat),
-          lon: parseFloat(city.lon)
-        };
-        suggestionsDiv.innerHTML = "";
-      });
-      suggestionsDiv.appendChild(div);
-    });
+    if (val.length < 2) {
+      suggestionsDiv.innerHTML = "";
+      suggestionsDiv.style.display = "none";
+      selectedCity = null;
+      return;
+    }
+    typingTimer = setTimeout(async () => {
+      const cities = await fetchCities(val);
+      suggestionsDiv.innerHTML = "";
+      if (cities.length > 0) {
+        suggestionsDiv.style.display = "block";
+        cities.forEach(city => {
+          const div = document.createElement("div");
+          div.textContent = city.display_name;
+          div.addEventListener("click", () => {
+            cityInput.value = city.display_name;
+            selectedCity = {
+              name: city.display_name,
+              lat: parseFloat(city.lat),
+              lon: parseFloat(city.lon)
+            };
+            suggestionsDiv.innerHTML = "";
+            suggestionsDiv.style.display = "none";
+          });
+          suggestionsDiv.appendChild(div);
+        });
+      } else {
+        suggestionsDiv.style.display = "none";
+      }
+    }, doneTypingInterval);
   });
+
+  // Hide suggestions when clicking outside
+  document.addEventListener('click', (event) => {
+    if (!cityInput.contains(event.target) && !suggestionsDiv.contains(event.target)) {
+      suggestionsDiv.style.display = 'none';
+    }
+  });
+
 
   const provider = new GoogleAuthProvider();
 
   loginBtn.addEventListener("click", () => {
-    signInWithPopup(auth, provider).catch(e => alert(e.message));
+    signInWithPopup(auth, provider)
+      .then((result) => {
+        showNotification(`Добро пожаловать, ${result.user.displayName}!`);
+      })
+      .catch(e => {
+        showNotification("Ошибка входа: " + e.message, true);
+      });
   });
 
   logoutBtn.addEventListener("click", () => {
-    signOut(auth);
+    signOut(auth)
+      .then(() => {
+        showNotification("Вы вышли из аккаунта.");
+      })
+      .catch(e => {
+        showNotification("Ошибка выхода: " + e.message, true);
+      });
   });
 
   onAuthStateChanged(auth, user => {
     if (user) {
       userInfo.textContent = `Привет, ${user.displayName}`;
       loginBtn.style.display = "none";
-      logoutBtn.style.display = "inline";
+      logoutBtn.style.display = "inline-block";
+      addBtn.style.display = "flex"; // Show add button for logged in users
       loadUserMarkers(user.uid);
     } else {
-      userInfo.textContent = "";
-      loginBtn.style.display = "inline";
+      userInfo.textContent = "Войдите, чтобы сохранять метки.";
+      loginBtn.style.display = "inline-block";
       logoutBtn.style.display = "none";
+      addBtn.style.display = "none"; // Hide add button for logged out users
       clearMarkers();
     }
   });
@@ -221,16 +571,18 @@
       });
       return docRef.id;
     } catch (e) {
-      alert("Ошибка при сохранении метки: " + e.message);
+      showNotification("Ошибка при сохранении метки: " + e.message, true);
     }
+    return null;
   }
 
   async function updateMarkerColor(docId, color) {
     try {
       const docRef = doc(db, "markers", docId);
       await updateDoc(docRef, { color });
+      showNotification("Цвет метки обновлен!");
     } catch(e) {
-      alert("Ошибка при обновлении метки: " + e.message);
+      showNotification("Ошибка при обновлении метки: " + e.message, true);
     }
   }
 
@@ -238,37 +590,49 @@
     try {
       const docRef = doc(db, "markers", docId);
       await deleteDoc(docRef);
+      showNotification("Метка успешно удалена.");
     } catch(e) {
-      alert("Ошибка при удалении метки: " + e.message);
+      showNotification("Ошибка при удалении метки: " + e.message, true);
     }
   }
 
   async function loadUserMarkers(userId) {
     clearMarkers();
+    showNotification("Загрузка ваших меток...");
     const markersQuery = query(
       collection(db, "markers"),
       where("userId", "==", userId)
     );
-    const querySnapshot = await getDocs(markersQuery);
+    try {
+        const querySnapshot = await getDocs(markersQuery);
 
-    querySnapshot.forEach(docSnap => {
-      const data = docSnap.data();
-      const idDoc = docSnap.id;
+        if (querySnapshot.empty) {
+            showNotification("У вас пока нет меток. Добавьте первую!");
+        }
 
-      const marker = L.circleMarker([data.lat, data.lon], {
-        color: data.color,
-        radius: 8,
-        fillOpacity: 0.7
-      }).addTo(map);
+        querySnapshot.forEach(docSnap => {
+          const data = docSnap.data();
+          const idDoc = docSnap.id;
 
-      // Создаем popup с кнопками "Изменить цвет" и "Удалить"
-      marker.bindPopup(createPopupContent(data.cityName, data.color, idDoc, marker));
+          const marker = L.circleMarker([data.lat, data.lon], {
+            color: data.color,
+            radius: 8,
+            fillOpacity: 0.7,
+            weight: 2, // Border weight
+            opacity: 0.8 // Border opacity
+          }).addTo(map);
 
-      markers.push({ idDoc, marker, data });
-    });
+          // Создаем popup с кнопками "Изменить цвет" и "Удалить"
+          marker.bindPopup(createPopupContent(data.cityName, data.color, idDoc, marker));
+
+          markers.push({ idDoc, marker, data });
+        });
+        showNotification("Метки успешно загружены!");
+    } catch (e) {
+        showNotification("Ошибка при загрузке меток: " + e.message, true);
+    }
   }
 
-  // Функция создает DOM-элементы для popup
   function createPopupContent(cityName, currentColor, idDoc, markerInstance) {
     const container = document.createElement("div");
 
@@ -276,12 +640,10 @@
     title.textContent = cityName;
     container.appendChild(title);
 
-    container.appendChild(document.createElement("br"));
-
-    // Кнопка изменить цвет
+    // Kнопка изменить цвет
     const editBtn = document.createElement("button");
     editBtn.textContent = "Изменить цвет";
-    editBtn.style.marginTop = "8px";
+    editBtn.classList.add("edit-btn");
     container.appendChild(editBtn);
 
     // Цветовой инпут (скрыт по умолчанию)
@@ -289,15 +651,12 @@
     colorPicker.type = "color";
     colorPicker.value = currentColor;
     colorPicker.style.display = "none";
-    colorPicker.style.marginTop = "8px";
     container.appendChild(colorPicker);
 
-    // Кнопка удалить метку
+    // Kнопка удалить метку
     const deleteBtn = document.createElement("button");
     deleteBtn.textContent = "Удалить метку";
-    deleteBtn.style.marginTop = "8px";
-    deleteBtn.style.backgroundColor = "#e74c3c";
-    deleteBtn.style.color = "white";
+    deleteBtn.classList.add("delete-btn");
     container.appendChild(deleteBtn);
 
     // Обработчики кнопок
@@ -307,17 +666,29 @@
 
     colorPicker.onchange = async () => {
       const newColor = colorPicker.value;
+      addBtnLoader.style.display = 'inline-block';
+      addBtnText.style.display = 'none';
+
       await updateMarkerColor(idDoc, newColor);
       markerInstance.setStyle({ color: newColor });
+
+      addBtnLoader.style.display = 'none';
+      addBtnText.style.display = 'inline';
       colorPicker.style.display = "none";
+      markerInstance.closePopup(); // Close popup after update
     };
 
     deleteBtn.onclick = async () => {
       if (confirm("Вы уверены, что хотите удалить эту метку?")) {
+        addBtnLoader.style.display = 'inline-block';
+        addBtnText.style.display = 'none';
+
         await deleteMarker(idDoc);
         map.removeLayer(markerInstance);
-        // Удаляем из массива markers
-        markers = markers.filter(m => m.idDoc !== idDoc);
+        markers = markers.filter(m => m.idDoc !== idDoc); // Update local array
+        addBtnLoader.style.display = 'none';
+        addBtnText.style.display = 'inline';
+        markerInstance.closePopup(); // Close popup after delete
       }
     };
 
@@ -325,20 +696,26 @@
   }
 
   addBtn.addEventListener("click", async () => {
+    addBtnLoader.style.display = 'inline-block';
+    addBtnText.style.display = 'none';
+
     const color = colorInput.value;
 
     if (!selectedCity) {
-      alert("Пожалуйста, выберите город из списка");
+      showNotification("Пожалуйста, выберите город из списка предложений.", true);
+      addBtnLoader.style.display = 'none';
+      addBtnText.style.display = 'inline';
       return;
     }
 
     const user = auth.currentUser;
     if (!user) {
-      alert("Сначала войдите в аккаунт");
+      showNotification("Сначала войдите в аккаунт.", true);
+      addBtnLoader.style.display = 'none';
+      addBtnText.style.display = 'inline';
       return;
     }
 
-    // Сохраняем метку в Firestore и получаем ID
     const docId = await saveMarker(
       user.uid,
       selectedCity.name,
@@ -347,27 +724,49 @@
       color
     );
 
-    // Добавляем метку на карту с popup
-    const marker = L.circleMarker([selectedCity.lat, selectedCity.lon], {
-      color: color,
-      radius: 8,
-      fillOpacity: 0.7
-    }).addTo(map);
+    if (docId) { // If save was successful
+        const marker = L.circleMarker([selectedCity.lat, selectedCity.lon], {
+          color: color,
+          radius: 8,
+          fillOpacity: 0.7,
+          weight: 2,
+          opacity: 0.8
+        }).addTo(map);
 
-    marker.bindPopup(createPopupContent(selectedCity.name, color, docId, marker)).openPopup();
+        marker.bindPopup(createPopupContent(selectedCity.name, color, docId, marker)).openPopup();
 
-    markers.push({ idDoc: docId, marker, data: {
-      cityName: selectedCity.name,
-      lat: selectedCity.lat,
-      lon: selectedCity.lon,
-      color: color
-    }});
+        markers.push({ idDoc: docId, marker, data: {
+          cityName: selectedCity.name,
+          lat: selectedCity.lat,
+          lon: selectedCity.lon,
+          color: color
+        }});
 
-    map.setView([selectedCity.lat, selectedCity.lon], 10);
+        map.setView([selectedCity.lat, selectedCity.lon], 10);
+        showNotification(`Метка для ${selectedCity.name} добавлена!`);
+    }
 
     cityInput.value = "";
-    selectedCity = null;
+    selectedCity = null; // Reset selected city
+    suggestionsDiv.innerHTML = "";
+    suggestionsDiv.style.display = "none";
+
+    addBtnLoader.style.display = 'none';
+    addBtnText.style.display = 'inline';
   });
+
+  // Initial state for toggle button
+  toggleControlsBtn.style.display = 'none'; // Initially hidden if controls are visible
+  toggleControlsBtn.innerHTML = '<i class="fas fa-times"></i>'; // Initial icon
+  setTimeout(() => {
+    if (!controlsDiv.classList.contains('hidden')) {
+        toggleControlsBtn.style.left = controlsDiv.offsetWidth + 30 + 'px';
+    }
+  }, 100); // Small delay to get controls width
+
 </script>
 </body>
 </html>
+```
+/end_artifact('improved_travel_map_with_firebase.html', 'html')
+
