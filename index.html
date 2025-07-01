@@ -73,6 +73,33 @@
       object-fit: cover;
       margin-bottom: 10px;
     }
+    #markerForm {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      width: 300px;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+      padding: 15px;
+      z-index: 1003;
+      display: none;
+    }
+    #markerForm input, #markerForm textarea, #markerForm select {
+      width: 100%;
+      margin-bottom: 10px;
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+    }
+    #markerForm img {
+      width: 100%;
+      max-height: 150px;
+      object-fit: cover;
+      border-radius: 6px;
+      margin-bottom: 10px;
+    }
   </style>
 </head>
 <body>
@@ -92,6 +119,14 @@
     </div>
   </div>
   <div id="map"></div>
+  <div id="markerForm">
+    <input type="text" id="locationTitle" placeholder="Название места">
+    <textarea id="locationDescription" placeholder="Описание"></textarea>
+    <input type="color" id="markerColor" value="#ff0000">
+    <input type="file" id="locationImage" accept="image/*">
+    <img id="previewImage" style="display:none">
+    <button onclick="saveMarker()">Сохранить</button>
+  </div>
   <script>
     function toggleMenu() {
       document.getElementById('sidebar').classList.toggle('active');
@@ -123,15 +158,15 @@
       location.reload();
     }
 
-    const existingUser = getUserDataFromLocalStorage();
-    if (!existingUser.email || !existingUser.password) {
+    const storedUser = getUserDataFromLocalStorage();
+    if (!storedUser.email || !storedUser.password) {
       const email = prompt("Введите Email:");
       const password = prompt("Введите пароль:");
       saveUserDataToLocalStorage({ email, password });
     }
 
-    const storedUser = getUserDataFromLocalStorage();
     document.addEventListener('DOMContentLoaded', () => {
+      const storedUser = getUserDataFromLocalStorage();
       if (storedUser.name) {
         document.getElementById('userName').textContent = storedUser.name;
         if (storedUser.avatarURL) {
@@ -145,22 +180,66 @@
         attribution: '&copy; OpenStreetMap contributors'
       }).addTo(map);
 
-      const savedMarkers = getMarkersFromLocalStorage();
-      savedMarkers.forEach(({ lat, lng, popup }) => {
-        L.marker([lat, lng]).addTo(map).bindPopup(popup);
+      let currentLatLng = null;
+      const previewImage = document.getElementById("previewImage");
+      const markerForm = document.getElementById("markerForm");
+
+      let markers = getMarkersFromLocalStorage();
+
+      function addMarker(lat, lng, data) {
+        const icon = L.divIcon({
+          className: '',
+          html: `<div style="background:${data.color};width:12px;height:12px;border-radius:50%;border:2px solid white"></div>`
+        });
+        const marker = L.marker([lat, lng], { icon }).addTo(map);
+        marker.bindPopup(`<b>${data.title}</b><br>${data.description}<br><img src="${data.image}" style="width:100px">`);
+        marker.on('click', () => {
+          document.getElementById("locationTitle").value = data.title;
+          document.getElementById("locationDescription").value = data.description;
+          document.getElementById("markerColor").value = data.color;
+          previewImage.src = data.image;
+          previewImage.style.display = 'block';
+          markerForm.style.display = 'block';
+          currentLatLng = { lat, lng };
+        });
+      }
+
+      markers.forEach(m => addMarker(m.lat, m.lng, m));
+
+      map.on('click', e => {
+        currentLatLng = e.latlng;
+        document.getElementById("locationTitle").value = "";
+        document.getElementById("locationDescription").value = "";
+        document.getElementById("markerColor").value = "#ff0000";
+        document.getElementById("locationImage").value = "";
+        previewImage.style.display = 'none';
+        markerForm.style.display = 'block';
       });
 
-      map.on('click', function(e) {
-        const lat = e.latlng.lat.toFixed(6);
-        const lng = e.latlng.lng.toFixed(6);
-        const popupText = prompt("Введите описание для этой точки:");
-        if (popupText) {
-          const marker = L.marker([lat, lng]).addTo(map).bindPopup(popupText);
-          const allMarkers = getMarkersFromLocalStorage();
-          allMarkers.push({ lat, lng, popup: popupText });
-          saveMarkersToLocalStorage(allMarkers);
+      document.getElementById("locationImage").addEventListener("change", e => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = function(evt) {
+            previewImage.src = evt.target.result;
+            previewImage.style.display = 'block';
+          };
+          reader.readAsDataURL(file);
         }
       });
+
+      window.saveMarker = function() {
+        if (!currentLatLng) return;
+        const title = document.getElementById("locationTitle").value;
+        const description = document.getElementById("locationDescription").value;
+        const color = document.getElementById("markerColor").value;
+        const image = previewImage.src || "";
+        const data = { lat: currentLatLng.lat, lng: currentLatLng.lng, title, description, color, image };
+        markers.push(data);
+        saveMarkersToLocalStorage(markers);
+        addMarker(data.lat, data.lng, data);
+        markerForm.style.display = 'none';
+      }
     });
   </script>
 </body>
