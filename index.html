@@ -1,208 +1,746 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <!-- [Весь предыдущий head код остается без изменений] -->
-    
-    <!-- Добавим CSS для новых элементов -->
-    <style>
-        /* Новые стили для статистики и дополнительных панелей */
-        #statisticsPanel, #exportImportPanel {
-            background: var(--bg-dark);
-            padding: 15px;
-            margin-top: 15px;
-            border-radius: var(--border-radius);
-        }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Travel Map с Firebase</title>
 
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-        }
+<!-- Google Fonts: Poppins for modern look -->
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300,400,600,700&display=swap" rel="stylesheet">
+<!-- FontAwesome for icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" integrity="sha512-..." crossorigin="anonymous" referrerpolicy="no-referrer" />
 
-        .stat-card {
-            background: var(--bg-light);
-            padding: 10px;
-            border-radius: var(--border-radius);
-            text-align: center;
-        }
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
-        #filterColorInput {
-            width: 100%;
-            margin-bottom: 10px;
-        }
+<style>
+  :root {
+    --primary-color: #4CAF50; /* Green */
+    --primary-dark-color: #388E3C;
+    --secondary-color: #2196F3; /* Blue */
+    --accent-color: #FFC107; /* Amber */
+    --danger-color: #F44336; /* Red */
+    --text-color: #333;
+    --bg-light: #f8f8f8;
+    --bg-dark: rgba(255, 255, 255, 0.95);
+    --border-radius: 8px;
+    --box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
 
-        #dreamTravelMode {
-            margin-top: 15px;
-            background-color: var(--accent-color);
-            color: white;
-        }
-    </style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    font-family: 'Poppins', sans-serif;
+    color: var(--text-color);
+    overflow: hidden; /* Prevent scrolling on main page */
+  }
+
+  #map {
+    position: absolute;
+    top: 0; bottom: 0; left: 0; right: 0;
+    height: 100%;
+    width: 100%;
+    z-index: 0;
+  }
+
+  #controls {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    background: var(--bg-dark);
+    padding: 20px;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    max-width: 320px;
+    z-index: 1000;
+    transition: transform 0.3s ease-in-out;
+    transform: translateX(0); /* Default position */
+  }
+
+  #controls.hidden {
+    transform: translateX(calc(-100% - 25px)); /* Hide off-screen */
+  }
+
+  #toggleControlsBtn {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    background: var(--primary-color);
+    color: white;
+    padding: 10px 15px;
+    border-radius: var(--border-radius);
+    text-align: center;
+    cursor: pointer;
+    box-shadow: var(--box-shadow);
+    z-index: 1001;
+    display: none; /* Hidden by default when controls are visible */
+    transition: left 0.3s ease-in-out;
+  }
+
+  #controls.hidden + #toggleControlsBtn {
+    left: 15px; /* Adjust if controls are hidden */
+    display: block;
+  }
+  #toggleControlsBtn i {
+      margin-right: 5px;
+  }
+
+  h2 {
+    margin-top: 0;
+    color: var(--primary-dark-color);
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  label {
+    display: block;
+    margin-top: 10px;
+    margin-bottom: 5px;
+    font-weight: 600;
+    color: var(--text-color);
+  }
+
+  input[type="text"], input[type="color"], button {
+    font-size: 1rem;
+    padding: 10px 15px;
+    margin-bottom: 10px;
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid #ddd;
+    border-radius: var(--border-radius);
+    transition: all 0.3s ease;
+  }
+
+  input[type="text"]:focus, input[type="color"]:focus {
+    border-color: var(--secondary-color);
+    box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.2);
+    outline: none;
+  }
+
+  button {
+    cursor: pointer;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    font-weight: 600;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  }
+
+  button:hover {
+    background-color: var(--primary-dark-color);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  }
+
+  button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  }
+
+  #loginBtn, #logoutBtn {
+    background-color: var(--secondary-color);
+  }
+  #loginBtn:hover, #logoutBtn:hover {
+    background-color: #1976D2; /* Darker blue */
+  }
+
+  #logoutBtn {
+    background-color: var(--danger-color);
+  }
+  #logoutBtn:hover {
+      background-color: #D32F2F; /* Darker red */
+  }
+
+  #userInfo {
+    margin-bottom: 15px;
+    text-align: center;
+    font-weight: 600;
+    color: var(--primary-dark-color);
+  }
+
+  .autocomplete-container {
+    position: relative;
+    width: 100%;
+  }
+
+  #suggestions {
+    border: 1px solid #eee;
+    max-height: 150px;
+    overflow-y: auto;
+    background: white;
+    position: absolute;
+    z-index: 1001;
+    width: 100%;
+    left: 0;
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  }
+  #suggestions div {
+    padding: 10px 15px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+  #suggestions div:hover {
+    background-color: #f0f0f0;
+  }
+
+  /* Popup Styles for Leaflet */
+  .leaflet-popup-content-wrapper {
+    border-radius: var(--border-radius);
+    padding: 0; /* Remove default padding */
+  }
+  
+  .leaflet-popup-content {
+      margin: 0;
+      padding: 15px;
+      font-family: 'Poppins', sans-serif;
+      text-align: center;
+  }
+  
+  .leaflet-popup-content b {
+      display: block;
+      margin-bottom: 15px;
+      font-size: 1.1em;
+      color: var(--primary-dark-color);
+  }
+  
+  .leaflet-popup-content input {
+      width: 100%; /* Make comment input full width */
+      margin-top: 10px;
+  }
+  
+  /* Comments Section Styles */
+  .comments-section {
+      margin-top: 10px;
+      max-height: 200px;
+      overflow-y: auto;
+  }
+  
+  .comment {
+      border-bottom: 1px solid #ccc;
+      padding: 5px 0;
+      text-align: left;
+  }
+
+  /* Notifications */
+  #notification-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 2000;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+  }
+
+  .notification {
+      background-color: var(--primary-color);
+      color: white;
+      padding: 10px 20px;
+      border-radius: var(--border-radius);
+      box-shadow: var(--box-shadow);
+      opacity: 0;
+      transform: translateY(-20px);
+      animation: fadeInOut 4s forwards; /* 4s: 0.5s fade in, 3s display, 0.5s fade out */
+  }
+
+  .notification.error {
+      background-color: var(--danger-color);
+  }
+
+  @keyframes fadeInOut {
+      0% { opacity: 0; transform: translateY(-20px); }
+      10% { opacity: 1; transform: translateY(0); }
+      90% { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(-20px); }
+  }
+  
+</style>
 </head>
 <body>
-    <!-- [Существующий HTML остается без изменений] -->
 
-    <!-- Добавим новые элементы в controls -->
-    <div id="controls">
-        <!-- [Существующие элементы управления] -->
+<div id="toggleControlsBtn">
+    <i class="fas fa-bars"></i>
+</div>
 
-        <!-- Новая секция: Статистика -->
-        <div id="statisticsPanel">
-            <h3>📊 Статистика путешествий</h3>
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <strong>Городов</strong>
-                    <div id="totalCitiesCount">0</div>
-                </div>
-                <div class="stat-card">
-                    <strong>Стран</strong>
-                    <div id="totalCountriesCount">0</div>
-                </div>
-            </div>
-        </div>
+<div id="controls">
+  <h2><i class="fas fa-map-marked-alt"></i> Travel Map</h2>
+  <div id="userInfo"></div>
+  <button id="loginBtn"><i class="fab fa-google"></i> Войти через Google</button>
+  <button id="logoutBtn" style="display:none;"><i class="fas fa-sign-out-alt"></i> Выйти</button>
 
-        <!-- Фильтр по цвету -->
-        <div>
-            <label>Фильтр по цвету:</label>
-            <input type="color" id="filterColorInput" />
-            <button id="applyColorFilterBtn">Применить фильтр</button>
-            <button id="resetColorFilterBtn">Сбросить</button>
-        </div>
+  <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
 
-        <!-- Экспорт/Импорт -->
-        <div id="exportImportPanel">
-            <h3>📤 Экспорт/Импорт</h3>
-            <button id="exportMarkersBtn">Экспорт меток</button>
-            <button id="importMarkersBtn">Импорт меток</button>
-            <input type="file" id="importFileInput" style="display:none" accept=".json" />
-        </div>
+  <div class="autocomplete-container">
+      <label for="cityInput">Введите город:</label>
+      <input type="text" id="cityInput" autocomplete="off" placeholder="Например, Париж" />
+      <div id="suggestions"></div>
+  </div>
 
-        <!-- Режим мечты о путешествиях -->
-        <button id="dreamTravelMode">✈️ Режим мечты</button>
-    </div>
+  <label for="colorInput">Цвет метки:</label>
+  <input type="color" id="colorInput" value="#4CAF50" />
 
-    <!-- Скрипт с новыми функциями -->
-    <script type="module">
-        // [Предыдущий Firebase скрипт остается без изменений]
+  <button id="addBtn">
+      <span id="addBtnText"><i class="fas fa-plus-circle"></i> Добавить метку</span>
+      <span id="addBtnLoader" class="loader"></span>
+  </button>
+</div>
 
-        // Новые функции
+<div id="map"></div>
 
-        // Статистика
-        async function updateStatistics(markers) {
-            const cities = new Set(markers.map(m => m.data.cityName));
-            const countries = new Set(markers.map(m => extractCountry(m.data.cityName)));
+<div id="notification-container"></div>
 
-            document.getElementById('totalCitiesCount').textContent = cities.size;
-            document.getElementById('totalCountriesCount').textContent = countries.size;
-        }
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-        function extractCountry(cityName) {
-            const parts = cityName.split(',');
-            return parts[parts.length - 1].trim();
-        }
+<!-- Firebase SDK (v9 Modular) -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+  import {
+    getAuth,
+    GoogleAuthProvider,
+    signInWithPopup,
+    signOut,
+    onAuthStateChanged
+  } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+  import {
+    getFirestore,
+    collection,
+    addDoc,
+    query,
+    where,
+    getDocs,
+    updateDoc,
+    deleteDoc,
+    doc
+  } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
-        // Фильтр по цвету
-        const filterColorInput = document.getElementById('filterColorInput');
-        const applyColorFilterBtn = document.getElementById('applyColorFilterBtn');
-        const resetColorFilterBtn = document.getElementById('resetColorFilterBtn');
+  const firebaseConfig = {
+    apiKey: "AIzaSyB0c7llONI831LKFmqTIH6393ZD4ZjBOZY",
+    authDomain: "travel-map-f3677.firebaseapp.com",
+    projectId: "travel-map-f3677",
+    storageBucket: "travel-map-f3677.firebasestorage.app",
+    messagingSenderId: "692883514599",
+    appId: "1:692883514599:web:0b7a71587433e67a85ae42",
+    measurementId: "G-M8L8K1DL29"
+  };
 
-        applyColorFilterBtn.addEventListener('click', () => {
-            const selectedColor = filterColorInput.value;
-            markers.forEach(({marker, data}) => {
-                if (data.color !== selectedColor) {
-                    map.removeLayer(marker);
-                } else {
-                    marker.addTo(map);
-                }
-            });
-        });
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
 
-        resetColorFilterBtn.addEventListener('click', () => {
-            markers.forEach(({marker}) => marker.addTo(map));
-        });
+  const loginBtn = document.getElementById("loginBtn");
+  const logoutBtn = document.getElementById("logoutBtn");
+  const userInfo = document.getElementById("userInfo");
+  const cityInput = document.getElementById("cityInput");
+  const colorInput = document.getElementById("colorInput");
+  const addBtn = document.getElementById("addBtn");
+  const addBtnText = document.getElementById("addBtnText");
+  const addBtnLoader = document.getElementById("addBtnLoader");
+  const suggestionsDiv = document.getElementById("suggestions");
+  const controlsDiv = document.getElementById("controls");
+  const toggleControlsBtn = document.getElementById("toggleControlsBtn");
+  const notificationContainer = document.getElementById("notification-container");
 
-        // Экспорт/Импорт
-        const exportMarkersBtn = document.getElementById('exportMarkersBtn');
-        const importMarkersBtn = document.getElementById('importMarkersBtn');
-        const importFileInput = document.getElementById('importFileInput');
+  const map = L.map("map").setView([55.751244, 37.618423], 5);
 
-        exportMarkersBtn.addEventListener('click', () => {
-            const markersData = markers.map(m => m.data);
-            const blob = new Blob([JSON.stringify(markersData)], {type: 'application/json'});
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'travel_markers.json';
-            a.click();
-        });
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19,
+    attribution: "© OpenStreetMap"
+  }).addTo(map);
 
-        importMarkersBtn.addEventListener('click', () => {
-            importFileInput.click();
-        });
+  let markers = [];
+  let selectedCity = null;
+  let typingTimer;
+  const doneTypingInterval = 500; // 0.5 seconds
 
-        importFileInput.addEventListener('change', async (e) => {
-            const file = e.target.files[0];
-            const reader = new FileReader();
-            reader.onload = async (event) => {
-                try {
-                    const importedMarkers = JSON.parse(event.target.result);
-                    const user = auth.currentUser;
-                    if (!user) {
-                        showNotification("Сначала войдите в аккаунт", true);
-                        return;
-                    }
+  // Load markers for all users when page loads
+  async function loadAllMarkers() {
+    const markersQuery = query(collection(db, "markers"));
+    try {
+      const querySnapshot = await getDocs(markersQuery);
+      querySnapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        const idDoc = docSnap.id;
 
-                    for (let markerData of importedMarkers) {
-                        await saveMarker(
-                            user.uid, 
-                            markerData.cityName, 
-                            markerData.lat, 
-                            markerData.lon, 
-                            markerData.color
-                        );
-                    }
-                    showNotification("Метки успешно импортированы!");
-                    loadUserMarkers(user.uid);
-                } catch (error) {
-                    showNotification("Ошибка импорта меток", true);
-                }
+        const marker = L.circleMarker([data.lat, data.lon], {
+          color: data.color,
+          radius: 8,
+          fillOpacity: 0.7,
+          weight: 2,
+          opacity: 0.8
+        }).addTo(map);
+
+        // Create popup content for markers
+        marker.bindPopup(createPopupContent(data.cityName, data.color, idDoc, marker));
+
+        markers.push({ idDoc, marker, data });
+      });
+      showNotification("Все метки загружены!");
+    } catch (e) {
+      showNotification("Ошибка при загрузке меток: " + e.message, true);
+    }
+  }
+
+  // Fetch cities from API
+  async function fetchCities(query) {
+    if (!query) return [];
+    const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=8&accept-language=ru&q=${encodeURIComponent(query)}`;
+    try {
+      const res = await fetch(url);
+      const data = await res.json();
+      return data.filter(item => {
+        // Filter for specific types that are cities/towns/villages
+        const allowedTypes = ["city", "town", "village", "hamlet", "suburb"];
+        return allowedTypes.includes(item.type) || (item.class === "place" && item.type === "administrative");
+      });
+    } catch (e) {
+      showNotification("Ошибка при поиске городов.", true);
+      return [];
+    }
+  }
+
+  // User click on input
+  cityInput.addEventListener("input", () => {
+    clearTimeout(typingTimer);
+    const val = cityInput.value.trim();
+    if (val.length < 2) {
+      suggestionsDiv.innerHTML = "";
+      suggestionsDiv.style.display = "none";
+      selectedCity = null;
+      return;
+    }
+    typingTimer = setTimeout(async () => {
+      const cities = await fetchCities(val);
+      suggestionsDiv.innerHTML = "";
+      if (cities.length > 0) {
+        suggestionsDiv.style.display = "block";
+        cities.forEach(city => {
+          const div = document.createElement("div");
+          div.textContent = city.display_name;
+          div.addEventListener("click", () => {
+            cityInput.value = city.display_name;
+            selectedCity = {
+              name: city.display_name,
+              lat: parseFloat(city.lat),
+              lon: parseFloat(city.lon)
             };
-            reader.readAsText(file);
+            suggestionsDiv.innerHTML = "";
+            suggestionsDiv.style.display = "none";
+          });
+          suggestionsDiv.appendChild(div);
         });
+      } else {
+        suggestionsDiv.style.display = "none";
+      }
+    }, doneTypingInterval);
+  });
 
-        // Режим мечты о путешествиях
-        const dreamTravelModeBtn = document.getElementById('dreamTravelMode');
-        let dreamMode = false;
+  // Toggle Controls
+  toggleControlsBtn.addEventListener('click', () => {
+      controlsDiv.classList.toggle('hidden');
+      if (controlsDiv.classList.contains('hidden')) {
+          toggleControlsBtn.innerHTML = '<i class="fas fa-bars"></i>';
+          toggleControlsBtn.style.left = '15px';
+      } else {
+          toggleControlsBtn.innerHTML = '<i class="fas fa-times"></i>'; // Change icon to close
+          toggleControlsBtn.style.left = controlsDiv.offsetWidth + 30 + 'px'; // Position next to controls
+          setTimeout(() => toggleControlsBtn.style.display = 'none', 300); // Hide after transition
+      }
+  });
 
-        dreamTravelModeBtn.addEventListener('click', () => {
-            dreamMode = !dreamMode;
-            dreamTravelModeBtn.style.opacity = dreamMode ? 0.7 : 1;
-            
-            if (dreamMode) {
-                markers.forEach(({marker, data}) => {
-                    marker.setStyle({
-                        fillOpacity: 0.3,
-                        color: 'gray'
-                    });
-                });
-                showNotification("Включен режим мечты о путешествиях");
-            } else {
-                markers.forEach(({marker, data}) => {
-                    marker.setStyle({
-                        color: data.color,
-                        fillOpacity: 0.7
-                    });
-                });
-                showNotification("Режим мечты деактивирован");
-            }
+  // Show toggle button when controls are hidden
+  controlsDiv.addEventListener('transitionend', () => {
+      if (controlsDiv.classList.contains('hidden')) {
+          toggleControlsBtn.style.display = 'block';
+      } else {
+          toggleControlsBtn.style.display = 'none';
+      }
+  });
+
+  const provider = new GoogleAuthProvider();
+
+  // Login event
+  loginBtn.addEventListener("click", () => {
+    signInWithPopup(auth, provider)
+      .then((result) => {
+        showNotification(`Добро пожаловать, ${result.user.displayName}!`);
+        loadAllMarkers(); // Load all markers for logged in users
+      })
+      .catch(e => {
+        showNotification("Ошибка входа: " + e.message, true);
+      });
+  });
+
+  // Logout event
+  logoutBtn.addEventListener("click", () => {
+    signOut(auth)
+      .then(() => {
+        showNotification("Вы вышли из аккаунта.");
+      })
+      .catch(e => {
+        showNotification("Ошибка выхода: " + e.message, true);
+      });
+  });
+
+  // Auth state change event
+  onAuthStateChanged(auth, user => {
+    if (user) {
+      userInfo.textContent = `Привет, ${user.displayName}`;
+      loginBtn.style.display = "none";
+      logoutBtn.style.display = "inline-block";
+      addBtn.style.display = "flex"; // Show add button for logged in users
+      loadUserMarkers(user.uid);
+    } else {
+      userInfo.textContent = "Войдите, чтобы сохранять метки.";
+      loginBtn.style.display = "inline-block";
+      logoutBtn.style.display = "none";
+      addBtn.style.display = "none"; // Hide add button for logged out users
+      clearMarkers();
+    }
+  });
+
+  // Save marker function
+  async function saveMarker(userId, cityName, lat, lon, color) {
+    try {
+      const docRef = await addDoc(collection(db, "markers"), {
+        userId,
+        cityName,
+        lat,
+        lon,
+        color,
+        createdAt: new Date(),
+        comments: [] // Initialize comments array
+      });
+      return docRef.id;
+    } catch (e) {
+      showNotification("Ошибка при сохранении метки: " + e.message, true);
+    }
+    return null;
+  }
+
+  // Create popup content function
+  function createPopupContent(cityName, currentColor, idDoc, markerInstance) {
+    const container = document.createElement("div");
+
+    const title = document.createElement("b");
+    title.textContent = cityName;
+    container.appendChild(title);
+
+    // Color picker
+    const colorPicker = document.createElement("input");
+    colorPicker.type = "color";
+    colorPicker.value = currentColor;
+    container.appendChild(colorPicker);
+
+    // Comment input
+    const commentInput = document.createElement("input");
+    commentInput.type = "text";
+    commentInput.placeholder = "Ваш комментарий...";
+    container.appendChild(commentInput);
+
+    // Button to add comment
+    const addCommentBtn = document.createElement("button");
+    addCommentBtn.textContent = "Добавить комментарий";
+    container.appendChild(addCommentBtn);
+
+    // Comments section
+    const commentsSection = document.createElement("div");
+    commentsSection.classList.add("comments-section");
+    container.appendChild(commentsSection);
+
+    // Event for adding comments
+    addCommentBtn.onclick = async () => {
+      const comment = commentInput.value.trim();
+      if (comment) {
+        await addCommentToMarker(idDoc, comment);
+        commentInput.value = ""; // Clear input
+        loadCommentsForMarker(idDoc, commentsSection); // Reload comments
+      }
+    };
+
+    // Load comments when opening the popup
+    loadCommentsForMarker(idDoc, commentsSection);
+
+    // Update color
+    colorPicker.onchange = async () => {
+      const newColor = colorPicker.value;
+      await updateMarkerColor(idDoc, newColor);
+      markerInstance.setStyle({ color: newColor });
+    };
+
+    return container;
+  }
+
+  // Add comment to marker function
+  async function addCommentToMarker(docId, comment) {
+    try {
+      const docRef = doc(db, "markers", docId);
+      await updateDoc(docRef, {
+        comments: firebase.firestore.FieldValue.arrayUnion(comment) // Add new comment to the comments array
+      });
+      showNotification("Комментарий добавлен!");
+    } catch (e) {
+      showNotification("Ошибка при добавлении комментария: " + e.message, true);
+    }
+  }
+
+  // Load comments for a marker
+  async function loadCommentsForMarker(docId, commentsSection) {
+    const docRef = doc(db, "markers", docId);
+    const docSnap = await getDoc(docRef);
+    const data = docSnap.data();
+    commentsSection.innerHTML = ''; // Clear previous comments
+
+    if (data.comments && data.comments.length > 0) {
+      data.comments.forEach(comment => {
+        const commentDiv = document.createElement("div");
+        commentDiv.classList.add("comment");
+        commentDiv.textContent = comment;
+        commentsSection.appendChild(commentDiv);
+      });
+    } else {
+      const noCommentsDiv = document.createElement("div");
+      noCommentsDiv.textContent = "Нет комментариев.";
+      commentsSection.appendChild(noCommentsDiv);
+    }
+  }
+
+  // Clear markers function
+  function clearMarkers() {
+    markers.forEach(({marker}) => map.removeLayer(marker));
+    markers = [];
+  }
+
+  // Show notifications function
+  function showNotification(message, isError = false) {
+    const notification = document.createElement("div");
+    notification.textContent = message;
+    notification.classList.add("notification");
+    if (isError) {
+      notification.classList.add("error");
+    }
+    notificationContainer.appendChild(notification);
+
+    setTimeout(() => {
+      notification.remove();
+    }, 4000); // 4 seconds (matching animation duration)
+  }
+
+  // Add markers to user's account
+  async function loadUserMarkers(userId) {
+    clearMarkers();
+    const markersQuery = query(
+      collection(db, "markers"),
+      where("userId", "==", userId)
+    );
+
+    try {
+        const querySnapshot = await getDocs(markersQuery);
+        
+        if (querySnapshot.empty) {
+            showNotification("У вас пока нет меток. Добавьте первую!");
+        }
+
+        querySnapshot.forEach(docSnap => {
+          const data = docSnap.data();
+          const idDoc = docSnap.id;
+
+          const marker = L.circleMarker([data.lat, data.lon], {
+            color: data.color,
+            radius: 8,
+            fillOpacity: 0.7,
+            weight: 2,
+            opacity: 0.8
+          }).addTo(map);
+
+          marker.bindPopup(createPopupContent(data.cityName, data.color, idDoc, marker));
+
+          markers.push({ idDoc, marker, data });
         });
+        showNotification("Ваши метки загружены!");
+        loadAllMarkers(); // Load all user markers on login
+    } catch (e) {
+        showNotification("Ошибка при загрузке меток: " + e.message, true);
+    }
+  }
 
-        // Обновление статистики при загрузке маркеров
-        const originalLoadUserMarkers = loadUserMarkers;
-        loadUserMarkers = async (userId) => {
-            await originalLoadUserMarkers(userId);
-            updateStatistics(markers);
-        };
-    </script>
+  addBtn.addEventListener("click", async () => {
+    addBtnLoader.style.display = 'inline-block';
+    addBtnText.style.display = 'none';
+
+    const color = colorInput.value;
+
+    if (!selectedCity) {
+      showNotification("Пожалуйста, выберите город из списка предложений.", true);
+      addBtnLoader.style.display = 'none';
+      addBtnText.style.display = 'inline';
+      return;
+    }
+
+    const user = auth.currentUser;
+    if (!user) {
+      showNotification("Сначала войдите в аккаунт.", true);
+      addBtnLoader.style.display = 'none';
+      addBtnText.style.display = 'inline';
+      return;
+    }
+
+    const docId = await saveMarker(
+      user.uid,
+      selectedCity.name,
+      selectedCity.lat,
+      selectedCity.lon,
+      color
+    );
+
+    if (docId) { // If save was successful
+        const marker = L.circleMarker([selectedCity.lat, selectedCity.lon], {
+          color: color,
+          radius: 8,
+          fillOpacity: 0.7,
+          weight: 2,
+          opacity: 0.8
+        }).addTo(map);
+
+        marker.bindPopup(createPopupContent(selectedCity.name, color, docId, marker)).openPopup();
+
+        markers.push({ idDoc: docId, marker, data: {
+          cityName: selectedCity.name,
+          lat: selectedCity.lat,
+          lon: selectedCity.lon,
+          color: color
+        }});
+
+        map.setView([selectedCity.lat, selectedCity.lon], 10);
+        showNotification(`Метка для ${selectedCity.name} добавлена!`);
+    }
+
+    cityInput.value = "";
+    selectedCity = null; // Reset selected city
+    suggestionsDiv.innerHTML = "";
+    suggestionsDiv.style.display = "none";
+
+    addBtnLoader.style.display = 'none';
+    addBtnText.style.display = 'inline';
+  });
+
+  // Load all markers when page loads
+  loadAllMarkers();
+  
+  // Initial state for toggle button
+  toggleControlsBtn.style.display = 'none'; // Initially hidden if controls are visible
+  toggleControlsBtn.innerHTML = '<i class="fas fa-times"></i>'; // Initial icon
+  setTimeout(() => {
+    if (!controlsDiv.classList.contains('hidden')) {
+        toggleControlsBtn.style.left = controlsDiv.offsetWidth + 30 + 'px';
+    }
+  }, 100); // Small delay to get controls width
+
+</script>
 </body>
 </html>
-```
