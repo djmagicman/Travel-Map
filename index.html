@@ -3,94 +3,61 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Путешествия с картой</title>
+  <title>Тест карты и автозаполнения</title>
   <style>
-    * {
-      box-sizing: border-box;
-    }
-    body, html {
-      margin: 0; padding: 0; height: 100%;
+    html, body, #app {
+      height: 100%;
+      margin: 0; padding: 0;
       font-family: Arial, sans-serif;
-      background: #fafafa;
-      color: #222;
     }
     #app {
       display: flex;
-      height: 100vh;
-      width: 100vw;
+      height: 100%;
+      width: 100%;
     }
     #sidebar {
       width: 300px;
-      background: #333;
+      background: #222;
       color: white;
-      display: flex;
-      flex-direction: column;
       padding: 16px;
-    }
-    #content {
-      flex-grow: 1;
-      display: flex;
-      flex-direction: column;
-      background: #fafafa;
-      padding: 16px;
+      box-sizing: border-box;
+      position: relative;
     }
     #map {
       flex-grow: 1;
-      min-width: 300px;
-      min-height: 100vh;
-      background: #ddd; /* для отладки, потом убрать */
+      height: 100%;
+      background: #ccc;
     }
-
-    /* Форма путешествий */
-    #trips {
-      margin-bottom: 16px;
-      max-width: 400px;
-    }
-    #trips input[type=text], #trips input[type=color] {
+    input, button {
       width: 100%;
       padding: 8px;
-      font-size: 1em;
+      font-size: 16px;
+      margin-bottom: 10px;
+      box-sizing: border-box;
       border-radius: 4px;
       border: 1px solid #ccc;
-      color: #222;
-      background: #fff;
-      margin-bottom: 8px;
     }
-    #trips input::placeholder {
-      color: #999;
-    }
-    #trips button {
-      padding: 10px 15px;
-      font-size: 1em;
-      border-radius: 4px;
-      border: none;
-      background-color: #007bff;
-      color: white;
-      cursor: pointer;
-    }
-    #trips button:hover {
-      background-color: #0056b3;
-    }
-
-    /* Стили для автодополнения */
     #city-list {
       list-style: none;
-      padding-left: 0;
-      margin-top: 0;
+      padding: 0;
+      margin: 0;
+      background: white;
+      color: black;
       max-height: 120px;
       overflow-y: auto;
-      border: 1px solid #ccc;
-      background: white;
       position: absolute;
-      width: calc(100% - 20px);
-      z-index: 10;
+      top: 68px; /* ниже поля ввода города */
+      width: 268px;
+      border: 1px solid #ccc;
+      z-index: 1000;
+      display: none;
     }
     #city-list li {
       padding: 5px 10px;
       cursor: pointer;
     }
     #city-list li:hover {
-      background-color: #007bff;
+      background: #007bff;
       color: white;
     }
   </style>
@@ -98,7 +65,6 @@
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    integrity="sha256-sA+4B6MdLYDxgiNpBvztwMZ4DYq4cdMWm6FoM9lvxF8="
     crossorigin=""
   />
 </head>
@@ -106,142 +72,130 @@
   <div id="app">
     <div id="sidebar">
       <h2>Добавить путешествие</h2>
-      <form id="trips" autocomplete="off">
-        <input
-          type="text"
-          id="city"
-          name="city"
-          placeholder="Город"
-          autocomplete="off"
-        />
-        <ul id="city-list" style="display:none;"></ul>
-        <input
-          type="text"
-          id="tripName"
-          name="tripName"
-          placeholder="Название путешествия"
-        />
-        <input type="color" id="color" name="color" value="#ff0000" />
-        <button type="submit">Добавить</button>
-      </form>
+      <input type="text" id="city" placeholder="Введите город" autocomplete="off" />
+      <ul id="city-list"></ul>
+      <input type="text" id="tripName" placeholder="Название путешествия" />
+      <input type="color" id="color" value="#ff0000" />
+      <button id="addBtn">Добавить метку</button>
     </div>
-    <div id="content">
-      <div id="map"></div>
-    </div>
+    <div id="map"></div>
   </div>
 
   <script
     src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-    integrity="sha256-o9N1jEDl+Q+oLS4eDeLaVtq5OGbZ1sa2U3tO3Vh5gq0="
     crossorigin=""
   ></script>
   <script>
+    // Инициализация карты
     const map = L.map('map').setView([55.751244, 37.618423], 5);
 
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
       attribution:
-        '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     }).addTo(map);
 
-    // Элементы формы и список автодополнения
     const cityInput = document.getElementById('city');
     const cityList = document.getElementById('city-list');
-    const tripsForm = document.getElementById('trips');
+    const tripNameInput = document.getElementById('tripName');
+    const colorInput = document.getElementById('color');
+    const addBtn = document.getElementById('addBtn');
 
-    // Функция поиска городов (автозаполнение)
-    let timeoutId;
+    let selectedCity = null; // сюда запишем выбранный город и координаты
+
+    // Автозаполнение городов
     cityInput.addEventListener('input', () => {
       const val = cityInput.value.trim();
       if (val.length < 2) {
         cityList.style.display = 'none';
         cityList.innerHTML = '';
+        selectedCity = null;
         return;
       }
-
-      // Чтобы не слать слишком много запросов
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => {
-        fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&q=${encodeURIComponent(
-            val
-          )}`,
-          {
-            headers: {
-              'Accept-Language': 'ru',
-              Referer: location.origin,
-            },
-          }
-        )
-          .then((res) => res.json())
-          .then((data) => {
-            cityList.innerHTML = '';
-            if (data.length === 0) {
-              cityList.style.display = 'none';
-              return;
-            }
-            data.forEach((place) => {
-              // Показываем только города
-              if (
-                place.type === 'city' ||
-                place.type === 'town' ||
-                place.type === 'village'
-              ) {
-                const li = document.createElement('li');
-                li.textContent = place.display_name;
-                li.dataset.lat = place.lat;
-                li.dataset.lon = place.lon;
-                cityList.appendChild(li);
-              }
-            });
-            cityList.style.display = cityList.children.length ? 'block' : 'none';
-          })
-          .catch(() => {
+      fetch(`https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&q=${encodeURIComponent(val)}`, {
+        headers: {
+          'Accept-Language': 'ru',
+          'Referer': location.origin
+        }
+      })
+        .then(res => res.json())
+        .then(data => {
+          cityList.innerHTML = '';
+          if (!data.length) {
             cityList.style.display = 'none';
+            selectedCity = null;
+            return;
+          }
+          data.forEach(place => {
+            if (place.type === 'city' || place.type === 'town' || place.type === 'village') {
+              const li = document.createElement('li');
+              li.textContent = place.display_name;
+              li.dataset.lat = place.lat;
+              li.dataset.lon = place.lon;
+              cityList.appendChild(li);
+            }
           });
-      }, 300);
+          cityList.style.display = cityList.children.length ? 'block' : 'none';
+        })
+        .catch(() => {
+          cityList.style.display = 'none';
+          selectedCity = null;
+        });
     });
 
-    cityList.addEventListener('click', (e) => {
+    // Клик по предложенному городу
+    cityList.addEventListener('click', e => {
       if (e.target.tagName === 'LI') {
         cityInput.value = e.target.textContent;
-        cityInput.dataset.lat = e.target.dataset.lat;
-        cityInput.dataset.lon = e.target.dataset.lon;
+        selectedCity = {
+          lat: e.target.dataset.lat,
+          lon: e.target.dataset.lon,
+          name: e.target.textContent
+        };
         cityList.style.display = 'none';
       }
     });
 
-    // Добавление метки при отправке формы
-    tripsForm.addEventListener('submit', (e) => {
-      e.preventDefault();
+    // Кнопка добавить метку
+    addBtn.addEventListener('click', () => {
+      const tripName = tripNameInput.value.trim();
+      const color = colorInput.value;
 
-      const city = cityInput.value.trim();
-      const tripName = document.getElementById('tripName').value.trim();
-      const color = document.getElementById('color').value;
-
-      // Проверка координат из автозаполнения
-      const lat = cityInput.dataset.lat;
-      const lon = cityInput.dataset.lon;
-
-      if (!city || !tripName || !lat || !lon) {
-        alert(
-          'Пожалуйста, выберите город из списка автозаполнения, укажите название и цвет.'
-        );
+      if (!selectedCity) {
+        alert('Пожалуйста, выберите город из списка');
+        return;
+      }
+      if (!tripName) {
+        alert('Пожалуйста, введите название путешествия');
         return;
       }
 
-      const marker = L.circleMarker([lat, lon], {
+      const marker = L.circleMarker([selectedCity.lat, selectedCity.lon], {
         color: color,
         radius: 8,
-        fillOpacity: 0.7,
+        fillOpacity: 0.7
       }).addTo(map);
 
-      marker.bindPopup(`<b>${tripName}</b><br>${city}`).openPopup();
+      marker.bindPopup(`<b>${tripName}</b><br>${selectedCity.name}`).openPopup();
 
-      // Очистка формы
-      tripsForm.reset();
-      cityInput.dataset.lat = '';
-      cityInput.dataset.lon = '';
+      // Центрируем карту на метке
+      map.setView([selectedCity.lat, selectedCity.lon], 10);
+
+      // Очистка полей
+      cityInput.value = '';
+      tripNameInput.value = '';
+      selectedCity = null;
+    });
+
+    // Закрывать список, если клик вне input или списка
+    document.addEventListener('click', e => {
+      if (
+        e.target !== cityInput &&
+        e.target.parentNode !== cityList &&
+        e.target !== cityList
+      ) {
+        cityList.style.display = 'none';
+      }
     });
   </script>
 </body>
