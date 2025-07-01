@@ -1,121 +1,89 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Travel Map с Firebase</title>
-
-<!-- Leaflet CSS -->
-<link
-  rel="stylesheet"
-  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-/>
-
-<style>
-  html, body {
-    margin: 0; 
-    padding: 0; 
-    height: 100%; 
-    width: 100%;
-    font-family: Arial, sans-serif;
-  }
-  #map {
-    position: absolute;
-    top: 0; bottom: 0; left: 0; right: 0;
-    height: 100%;
-    width: 100%;
-    z-index: 0;
-  }
-  #controls {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    background: rgba(255 255 255 / 0.9);
-    padding: 10px;
-    border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0,0,0,0.3);
-    max-width: 260px;
-    z-index: 1000;
-  }
-  input, button {
-    font-size: 1rem;
-    padding: 6px;
-    margin: 4px 0;
-    width: 100%;
-    box-sizing: border-box;
-  }
-  #userInfo {
-    margin-bottom: 10px;
-  }
-  #suggestions {
-    border: 1px solid #ccc;
-    max-height: 120px;
-    overflow-y: auto;
-    background: white;
-    position: absolute;
-    z-index: 1001;
-    width: 100%;
-    left: 0;
-    box-sizing: border-box;
-  }
-  #suggestions div {
-    padding: 6px;
-    cursor: pointer;
-  }
-  #suggestions div:hover {
-    background-color: #ddd;
-  }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Travel Map</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    html, body {
+      height: 100%; margin: 0;
+      font-family: Arial, sans-serif;
+    }
+    #map {
+      height: 100%;
+    }
+    #controls {
+      position: absolute;
+      top: 10px; left: 10px;
+      background: #fff;
+      padding: 10px;
+      z-index: 1000;
+      box-shadow: 0 0 5px rgba(0,0,0,0.2);
+    }
+    #suggestions {
+      border: 1px solid #ccc;
+      max-height: 120px;
+      overflow-y: auto;
+      background: white;
+      position: absolute;
+      z-index: 1000;
+      width: 220px;
+    }
+    #suggestions div {
+      padding: 6px;
+      cursor: pointer;
+    }
+    #suggestions div:hover {
+      background-color: #eee;
+    }
+    input, button, textarea {
+      font-size: 1rem;
+      margin-bottom: 6px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .thumb {
+      width: 60px;
+      height: auto;
+      margin: 2px;
+    }
+  </style>
 </head>
 <body>
-
 <div id="controls">
   <div id="userInfo"></div>
   <button id="loginBtn">Войти через Google</button>
   <button id="logoutBtn" style="display:none;">Выйти</button>
-  
-  <label for="cityInput">Введите город:</label><br />
-  <input type="text" id="cityInput" autocomplete="off" />
+  <br />
+  <input type="text" id="cityInput" placeholder="Введите город" autocomplete="off" />
   <div id="suggestions"></div>
-
-  <label for="colorInput">Цвет метки:</label><br />
   <input type="color" id="colorInput" value="#ff0000" />
-
+  <textarea id="commentInput" placeholder="Комментарий"></textarea>
+  <input type="file" id="photoInput" accept="image/*" multiple />
   <button id="addBtn">Добавить метку</button>
 </div>
 
 <div id="map"></div>
 
-<!-- Leaflet JS -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-<!-- Firebase SDK (v9 Modular) -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
   import {
-    getAuth,
-    GoogleAuthProvider,
-    signInWithPopup,
-    signOut,
-    onAuthStateChanged
+    getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged
   } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
   import {
-    getFirestore,
-    collection,
-    addDoc,
-    query,
-    where,
-    getDocs,
-    updateDoc,
-    deleteDoc,
-    doc
+    getFirestore, collection, addDoc, getDocs, query, where, doc, deleteDoc, updateDoc
   } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+  import {
+    getStorage, ref, uploadBytes, getDownloadURL
+  } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-storage.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyB0c7llONI831LKFmqTIH6393ZD4ZjBOZY",
     authDomain: "travel-map-f3677.firebaseapp.com",
     projectId: "travel-map-f3677",
-    storageBucket: "travel-map-f3677.firebasestorage.app",
+    storageBucket: "travel-map-f3677.appspot.com",
     messagingSenderId: "692883514599",
     appId: "1:692883514599:web:0b7a71587433e67a85ae42",
     measurementId: "G-M8L8K1DL29"
@@ -124,52 +92,36 @@
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db = getFirestore(app);
+  const storage = getStorage(app);
 
   const loginBtn = document.getElementById("loginBtn");
   const logoutBtn = document.getElementById("logoutBtn");
   const userInfo = document.getElementById("userInfo");
   const cityInput = document.getElementById("cityInput");
   const colorInput = document.getElementById("colorInput");
+  const commentInput = document.getElementById("commentInput");
+  const photoInput = document.getElementById("photoInput");
   const addBtn = document.getElementById("addBtn");
   const suggestionsDiv = document.getElementById("suggestions");
 
-  const map = L.map("map").setView([55.751244, 37.618423], 5);
-
+  const map = L.map("map").setView([55.75, 37.61], 5);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    maxZoom: 19,
-    attribution: "© OpenStreetMap"
+    attribution: "&copy; OpenStreetMap contributors"
   }).addTo(map);
 
-  // Храним метки как объекты { idDoc, marker, data }
-  let markers = [];
   let selectedCity = null;
+  let markers = [];
 
-  function clearMarkers() {
-    markers.forEach(({marker}) => map.removeLayer(marker));
-    markers = [];
-  }
-
-  async function fetchCities(query) {
-    if (!query) return [];
-    const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&accept-language=ru&q=${encodeURIComponent(query)}`;
-    try {
-      const res = await fetch(url);
-      const data = await res.json();
-      return data.filter(item => {
-        return item.type === "city" || item.type === "town" || item.type === "village";
-      });
-    } catch (e) {
-      return [];
-    }
-  }
-
+  // Suggestions
   cityInput.addEventListener("input", async () => {
     const val = cityInput.value.trim();
     suggestionsDiv.innerHTML = "";
     selectedCity = null;
     if (val.length < 2) return;
-    const cities = await fetchCities(val);
-    cities.forEach(city => {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(val)}&limit=5&accept-language=ru`;
+    const res = await fetch(url);
+    const data = await res.json();
+    data.forEach(city => {
       const div = document.createElement("div");
       div.textContent = city.display_name;
       div.addEventListener("click", () => {
@@ -186,21 +138,15 @@
   });
 
   const provider = new GoogleAuthProvider();
-
-  loginBtn.addEventListener("click", () => {
-    signInWithPopup(auth, provider).catch(e => alert(e.message));
-  });
-
-  logoutBtn.addEventListener("click", () => {
-    signOut(auth);
-  });
+  loginBtn.addEventListener("click", () => signInWithPopup(auth, provider));
+  logoutBtn.addEventListener("click", () => signOut(auth));
 
   onAuthStateChanged(auth, user => {
     if (user) {
       userInfo.textContent = `Привет, ${user.displayName}`;
       loginBtn.style.display = "none";
       logoutBtn.style.display = "inline";
-      loadUserMarkers(user.uid);
+      loadMarkers(user.uid);
     } else {
       userInfo.textContent = "";
       loginBtn.style.display = "inline";
@@ -209,164 +155,100 @@
     }
   });
 
-  async function saveMarker(userId, cityName, lat, lon, color) {
-    try {
-      const docRef = await addDoc(collection(db, "markers"), {
-        userId,
-        cityName,
-        lat,
-        lon,
-        color,
-        createdAt: new Date()
-      });
-      return docRef.id;
-    } catch (e) {
-      alert("Ошибка при сохранении метки: " + e.message);
+  async function uploadPhotos(userId, files) {
+    const urls = [];
+    for (const file of files) {
+      const photoRef = ref(storage, `photos/${userId}/${Date.now()}_${file.name}`);
+      await uploadBytes(photoRef, file);
+      const url = await getDownloadURL(photoRef);
+      urls.push(url);
     }
+    return urls;
   }
 
-  async function updateMarkerColor(docId, color) {
-    try {
-      const docRef = doc(db, "markers", docId);
-      await updateDoc(docRef, { color });
-    } catch(e) {
-      alert("Ошибка при обновлении метки: " + e.message);
-    }
-  }
-
-  async function deleteMarker(docId) {
-    try {
-      const docRef = doc(db, "markers", docId);
-      await deleteDoc(docRef);
-    } catch(e) {
-      alert("Ошибка при удалении метки: " + e.message);
-    }
-  }
-
-  async function loadUserMarkers(userId) {
+  async function loadMarkers(userId) {
     clearMarkers();
-    const markersQuery = query(
-      collection(db, "markers"),
-      where("userId", "==", userId)
-    );
-    const querySnapshot = await getDocs(markersQuery);
-
-    querySnapshot.forEach(docSnap => {
+    const q = query(collection(db, "markers"), where("userId", "==", userId));
+    const snap = await getDocs(q);
+    snap.forEach(docSnap => {
       const data = docSnap.data();
-      const idDoc = docSnap.id;
-
       const marker = L.circleMarker([data.lat, data.lon], {
-        color: data.color,
-        radius: 8,
-        fillOpacity: 0.7
+        color: data.color || "#000", radius: 8, fillOpacity: 0.7
       }).addTo(map);
-
-      // Создаем popup с кнопками "Изменить цвет" и "Удалить"
-      marker.bindPopup(createPopupContent(data.cityName, data.color, idDoc, marker));
-
-      markers.push({ idDoc, marker, data });
+      marker.bindPopup(createPopupHTML(data, docSnap.id));
+      marker.on("click", () => marker.openPopup());
+      markers.push(marker);
     });
   }
 
-  // Функция создает DOM-элементы для popup
-  function createPopupContent(cityName, currentColor, idDoc, markerInstance) {
-    const container = document.createElement("div");
+  function createPopupHTML(data, id) {
+    let photosHTML = "";
+    if (data.photos && data.photos.length) {
+      photosHTML = data.photos.map(url => `<img src="${url}" class="thumb" />`).join("");
+    }
+    return `
+      <b>${data.cityName}</b><br/>
+      ${data.comment ? `<i>${data.comment}</i><br/>` : ""}
+      ${photosHTML}<br/>
+      <button onclick="window.editMarker('${id}')">Редактировать</button>
+      <button onclick="window.deleteMarker('${id}')">Удалить</button>
+    `;
+  }
 
-    const title = document.createElement("b");
-    title.textContent = cityName;
-    container.appendChild(title);
+  window.editMarker = async (id) => {
+    const markerRef = doc(db, "markers", id);
+    const snap = await getDocs(query(collection(db, "markers"), where("__name__", "==", id)));
+    if (snap.empty) return alert("Метка не найдена");
+    const data = snap.docs[0].data();
+    cityInput.value = data.cityName;
+    colorInput.value = data.color;
+    commentInput.value = data.comment || "";
+    selectedCity = { name: data.cityName, lat: data.lat, lon: data.lon };
+    await deleteDoc(markerRef);
+    loadMarkers(auth.currentUser.uid);
+  };
 
-    container.appendChild(document.createElement("br"));
+  window.deleteMarker = async (id) => {
+    await deleteDoc(doc(db, "markers", id));
+    loadMarkers(auth.currentUser.uid);
+  };
 
-    // Кнопка изменить цвет
-    const editBtn = document.createElement("button");
-    editBtn.textContent = "Изменить цвет";
-    editBtn.style.marginTop = "8px";
-    container.appendChild(editBtn);
-
-    // Цветовой инпут (скрыт по умолчанию)
-    const colorPicker = document.createElement("input");
-    colorPicker.type = "color";
-    colorPicker.value = currentColor;
-    colorPicker.style.display = "none";
-    colorPicker.style.marginTop = "8px";
-    container.appendChild(colorPicker);
-
-    // Кнопка удалить метку
-    const deleteBtn = document.createElement("button");
-    deleteBtn.textContent = "Удалить метку";
-    deleteBtn.style.marginTop = "8px";
-    deleteBtn.style.backgroundColor = "#e74c3c";
-    deleteBtn.style.color = "white";
-    container.appendChild(deleteBtn);
-
-    // Обработчики кнопок
-    editBtn.onclick = () => {
-      colorPicker.style.display = (colorPicker.style.display === "none") ? "block" : "none";
-    };
-
-    colorPicker.onchange = async () => {
-      const newColor = colorPicker.value;
-      await updateMarkerColor(idDoc, newColor);
-      markerInstance.setStyle({ color: newColor });
-      colorPicker.style.display = "none";
-    };
-
-    deleteBtn.onclick = async () => {
-      if (confirm("Вы уверены, что хотите удалить эту метку?")) {
-        await deleteMarker(idDoc);
-        map.removeLayer(markerInstance);
-        // Удаляем из массива markers
-        markers = markers.filter(m => m.idDoc !== idDoc);
-      }
-    };
-
-    return container;
+  function clearMarkers() {
+    markers.forEach(m => map.removeLayer(m));
+    markers = [];
   }
 
   addBtn.addEventListener("click", async () => {
-    const color = colorInput.value;
-
-    if (!selectedCity) {
-      alert("Пожалуйста, выберите город из списка");
-      return;
-    }
-
     const user = auth.currentUser;
-    if (!user) {
-      alert("Сначала войдите в аккаунт");
-      return;
+    if (!user) return alert("Сначала войдите в аккаунт");
+    if (!selectedCity) return alert("Выберите город из списка");
+
+    const color = colorInput.value;
+    const comment = commentInput.value;
+    const files = photoInput.files;
+    let photoURLs = [];
+
+    if (files.length > 0) {
+      photoURLs = await uploadPhotos(user.uid, files);
     }
 
-    // Сохраняем метку в Firestore и получаем ID
-    const docId = await saveMarker(
-      user.uid,
-      selectedCity.name,
-      selectedCity.lat,
-      selectedCity.lon,
-      color
-    );
-
-    // Добавляем метку на карту с popup
-    const marker = L.circleMarker([selectedCity.lat, selectedCity.lon], {
-      color: color,
-      radius: 8,
-      fillOpacity: 0.7
-    }).addTo(map);
-
-    marker.bindPopup(createPopupContent(selectedCity.name, color, docId, marker)).openPopup();
-
-    markers.push({ idDoc: docId, marker, data: {
+    await addDoc(collection(db, "markers"), {
+      userId: user.uid,
       cityName: selectedCity.name,
       lat: selectedCity.lat,
       lon: selectedCity.lon,
-      color: color
-    }});
-
-    map.setView([selectedCity.lat, selectedCity.lon], 10);
+      color,
+      comment,
+      photos: photoURLs,
+      createdAt: new Date()
+    });
 
     cityInput.value = "";
+    commentInput.value = "";
+    photoInput.value = "";
     selectedCity = null;
+
+    loadMarkers(user.uid);
   });
 </script>
 </body>
