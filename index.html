@@ -70,4 +70,997 @@
     font-size: 0.9em;
     color: #bbb;
   }
-  /* Главное меню кнопок снизу *
+  /* Главное меню кнопок снизу */
+  #sidebar footer {
+    border-top: 1px solid #444;
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+  }
+  #sidebar footer button {
+    background: #444;
+    border: none;
+    color: #eee;
+    padding: 10px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    flex: 1;
+    margin: 0 5px;
+    font-weight: 600;
+    transition: background 0.3s ease;
+  }
+  #sidebar footer button:hover,
+  #sidebar footer button.active {
+    background: #4caf50;
+    color: white;
+  }
+  /* Вкладки контента */
+  #content {
+    flex-grow: 1;
+    background: #fafafa;
+    overflow-y: auto;
+    padding: 20px;
+  }
+  .tab {
+    display: none;
+  }
+  .tab.active {
+    display: block;
+  }
+  /* Профиль */
+  #profile form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-width: 300px;
+  }
+  #profile label {
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  #profile input[type=text],
+  #profile input[type=number],
+  #profile textarea {
+    padding: 8px;
+    font-size: 1em;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    width: 100%;
+  }
+  #profile textarea {
+    resize: vertical;
+  }
+  #profile input[type=file] {
+    border: none;
+    padding: 0;
+  }
+  #profile button {
+    padding: 10px;
+    background: #4caf50;
+    border: none;
+    color: white;
+    border-radius: 4px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  #profile button:hover {
+    background: #388e3c;
+  }
+  /* Друзья */
+  #friends {
+    max-width: 500px;
+  }
+  #friends .search {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  #friends input[type=text] {
+    flex-grow: 1;
+    padding: 8px;
+    font-size: 1em;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+  }
+  #friends button {
+    padding: 8px 14px;
+    border: none;
+    background: #4caf50;
+    color: white;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  #friends ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  #friends li {
+    padding: 8px 12px;
+    border-bottom: 1px solid #ddd;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  #friends li:last-child {
+    border-bottom: none;
+  }
+  #friends li button {
+    background: #2196f3;
+    border: none;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9em;
+  }
+  /* Путешествия */
+  #trips {
+    max-width: 600px;
+  }
+  #trips form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  #trips label {
+    font-weight: 600;
+  }
+  #trips input[type=text], #trips input[type=color] {
+    padding: 8px;
+    font-size: 1em;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    width: 100%;
+  }
+  /* Стили автодополнения */
+  .autocomplete-suggestions {
+    border: 1px solid #ccc;
+    background: white;
+    max-height: 160px;
+    overflow-y: auto;
+    position: absolute;
+    z-index: 10000;
+    border-radius: 4px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  }
+  .autocomplete-suggestion {
+    padding: 8px;
+    cursor: pointer;
+  }
+  .autocomplete-suggestion:hover {
+    background: #4caf50;
+    color: white;
+  }
+  #trips button {
+    padding: 10px;
+    background: #4caf50;
+    border: none;
+    color: white;
+    border-radius: 4px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  #trips button:hover {
+    background: #388e3c;
+  }
+  #trip-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  #trip-list li {
+    padding: 8px 12px;
+    border-bottom: 1px solid #ddd;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  #trip-list li:last-child {
+    border-bottom: none;
+  }
+  #trip-list li:hover {
+    background: #eee;
+  }
+  #trip-list li button {
+    background: #f44336;
+    border: none;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9em;
+  }
+  /* Карта */
+  #map {
+    flex-grow: 1;
+  }
+  /* Подсказка маркера (popup) */
+  .leaflet-popup-content-wrapper {
+    max-width: 280px;
+  }
+  .marker-photo {
+    max-width: 100%;
+    max-height: 150px;
+    display: block;
+    margin-top: 8px;
+    border-radius: 6px;
+  }
+  /* Адаптив */
+  @media (max-width: 800px) {
+    #sidebar {
+      width: 100vw;
+      height: 320px;
+      flex-shrink: 0;
+      order: 2;
+      overflow-y: auto;
+    }
+    #content {
+      height: calc(100vh - 320px);
+      overflow-y: auto;
+    }
+    #app {
+      flex-direction: column;
+    }
+    #map {
+      height: 100vh;
+      order: 1;
+    }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <nav id="sidebar" aria-label="Сайдбар меню">
+    <header>
+      <div id="avatar-container" tabindex="0" aria-label="Профиль пользователя">
+        <img id="avatar-img" src="" alt="Аватар пользователя" />
+        <div id="user-info">
+          <h2 id="user-name">Гость</h2>
+          <small id="user-age"></small>
+          <p id="user-comment"></p>
+        </div>
+      </div>
+    </header>
+
+    <section id="content">
+      <!-- Вкладка Профиль -->
+      <div id="profile" class="tab" role="tabpanel" aria-labelledby="btn-profile">
+        <h3>Профиль</h3>
+        <form id="profile-form" novalidate>
+          <label for="profile-name">Имя:</label>
+          <input type="text" id="profile-name" name="name" placeholder="Ваше имя" required />
+
+          <label for="profile-age">Возраст:</label>
+          <input type="number" id="profile-age" name="age" min="1" max="120" placeholder="Возраст" required />
+
+          <label for="profile-comment">Комментарий:</label>
+          <textarea id="profile-comment-input" name="comment" rows="3" placeholder="Расскажите о себе"></textarea>
+
+          <label for="profile-avatar">Аватар:</label>
+          <input type="file" id="profile-avatar" name="avatar" accept="image/*" />
+
+          <button type="submit">Сохранить профиль</button>
+        </form>
+      </div>
+
+      <!-- Вкладка Друзья -->
+      <div id="friends" class="tab" role="tabpanel" aria-labelledby="btn-friends">
+        <h3>Друзья</h3>
+        <div class="search">
+          <input type="text" id="friend-search-input" placeholder="Поиск друзей по имени или email" aria-label="Поиск друзей" />
+          <button id="friend-search-btn" aria-label="Поиск друзей">Найти</button>
+        </div>
+        <ul id="friend-list" aria-live="polite" aria-relevant="additions"></ul>
+      </div>
+
+      <!-- Вкладка Путешествия -->
+      <div id="trips" class="tab active" role="tabpanel" aria-labelledby="btn-trips">
+        <h3>Путешествия</h3>
+        <form id="trip-form" novalidate autocomplete="off">
+          <label for="trip-start">Начальная точка (город/место):</label>
+          <div style="position: relative;">
+            <input type="text" id="trip-start" placeholder="Начните вводить город" required aria-autocomplete="list" />
+            <div id="autocomplete-start" class="autocomplete-suggestions"></div>
+          </div>
+
+          <label for="trip-end">Конечная точка (город/место):</label>
+          <div style="position: relative;">
+            <input type="text" id="trip-end" placeholder="Начните вводить город" required aria-autocomplete="list" />
+            <div id="autocomplete-end" class="autocomplete-suggestions"></div>
+          </div>
+
+          <label for="trip-stops">Промежуточные города (через запятую):</label>
+          <div style="position: relative;">
+            <input type="text" id="trip-stops" placeholder="Начните вводить города через запятую" aria-autocomplete="list" />
+            <div id="autocomplete-stops" class="autocomplete-suggestions"></div>
+          </div>
+
+          <label for="trip-color">Цвет маршрута:</label>
+          <input type="color" id="trip-color" value="#4caf50" />
+
+          <button type="submit">Создать путешествие</button>
+        </form>
+
+        <ul id="trip-list" aria-live="polite" aria-relevant="additions"></ul>
+      </div>
+    </section>
+
+    <footer>
+      <button id="btn-profile" aria-controls="profile" aria-selected="false" role="tab">Профиль</button>
+      <button id="btn-friends" aria-controls="friends" aria-selected="false" role="tab">Друзья</button>
+      <button id="btn-trips" class="active" aria-controls="trips" aria-selected="true" role="tab">Путешествия</button>
+    </footer>
+  </nav>
+
+  <div id="map" aria-label="Карта путешествий"></div>
+</div>
+
+<script
+  src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+  integrity="sha256-oPke0b2mDhmlyOyP0klybspjC+8rsOaH7ZNPtkEpr6w="
+  crossorigin=""
+></script>
+<script>
+(() => {
+  'use strict';
+
+  // --- Переменные хранения ---
+  let user = {
+    name: 'Гость',
+    age: '',
+    comment: '',
+    avatar: ''
+  };
+
+  // Друзья: {id, name, email, inviteLink, accepted}
+  let friends = [];
+
+  // Метки на карте (id, lat, lng, title, description, photo, color, travelType)
+  let markersData = [];
+
+  // Путешествия: id, start{name, latlng}, end{name, latlng}, stops[{name, latlng}], color
+  let trips = [];
+
+  // Leaflet объекты
+  let map, leafletMarkers = new Map();
+  let leafletRoutes = new Map();
+
+  let currentTab = 'trips';
+
+  // --- Инициализация карты ---
+  function initMap() {
+    map = L.map('map').setView([55.7558, 37.6173], 4);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    // Убираем добавление маркера по клику (больше не нужно)
+  }
+
+  // --- Загрузка из localStorage ---
+  function loadFromStorage() {
+    try {
+      user = JSON.parse(localStorage.getItem('tms_user')) || user;
+      friends = JSON.parse(localStorage.getItem('tms_friends')) || [];
+      markersData = JSON.parse(localStorage.getItem('tms_markers')) || [];
+      trips = JSON.parse(localStorage.getItem('tms_trips')) || [];
+    } catch {
+      // Игнорируем ошибки
+    }
+  }
+
+  // --- Сохранение ---
+  function saveToStorage() {
+    localStorage.setItem('tms_user', JSON.stringify(user));
+    localStorage.setItem('tms_friends', JSON.stringify(friends));
+    localStorage.setItem('tms_markers', JSON.stringify(markersData));
+    localStorage.setItem('tms_trips', JSON.stringify(trips));
+  }
+
+  // --- Отобразить профиль в меню ---
+  function renderProfileMenu() {
+    document.getElementById('avatar-img').src = user.avatar || 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
+    document.getElementById('user-name').textContent = user.name || 'Гость';
+    document.getElementById('user-age').textContent = user.age ? `Возраст: ${user.age}` : '';
+    document.getElementById('user-comment').textContent = user.comment || '';
+  }
+
+  // --- Заполнить профиль ---
+  function fillProfileForm() {
+    document.getElementById('profile-name').value = user.name || '';
+    document.getElementById('profile-age').value = user.age || '';
+    document.getElementById('profile-comment-input').value = user.comment || '';
+  }
+
+  // --- Инициализация профиля ---
+  function initProfile() {
+    fillProfileForm();
+    renderProfileMenu();
+
+    const form = document.getElementById('profile-form');
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const name = form['name'].value.trim();
+      const age = form['age'].value.trim();
+      const comment = form['comment'].value.trim();
+
+      if (!name) {
+        alert('Введите имя');
+        return;
+      }
+      if (!age || isNaN(age) || age < 1 || age > 120) {
+        alert('Введите корректный возраст');
+        return;
+      }
+      user.name = name;
+      user.age = age;
+      user.comment = comment;
+      saveToStorage();
+      renderProfileMenu();
+      alert('Профиль сохранён');
+    });
+
+    const avatarInput = document.getElementById('profile-avatar');
+    avatarInput.addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      if (!file.type.startsWith('image/')) {
+        alert('Выберите изображение');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        user.avatar = reader.result;
+        saveToStorage();
+        renderProfileMenu();
+        avatarInput.value = '';
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // --- Создание маркера Leaflet по данным ---
+  function createLeafletMarker(data) {
+    const icon = L.divIcon({
+      className: '',
+      html: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="48" viewBox="0 0 32 48" fill="none">
+        <path fill="${data.color}" stroke="#222" stroke-width="2" d="M16 0C7 0 0 10 0 18c0 14 16 30 16 30s16-16 16-30c0-8-7-18-16-18z"/>
+        <circle cx="16" cy="18" r="6" fill="${data.travelType === 'been' ? '#000' : '#fff'}" stroke="#222" stroke-width="2"/>
+      </svg>`,
+      iconSize: [32, 48],
+      iconAnchor: [16, 48],
+      popupAnchor: [0, -48],
+      className: ''
+    });
+
+    const marker = L.marker([data.lat, data.lng], { icon, draggable: true, autoPan: true });
+
+    const popupContent = document.createElement('div');
+    popupContent.style.minWidth = '250px';
+
+    function buildPopupContent(editMode = false) {
+      popupContent.innerHTML = '';
+
+      if (!editMode) {
+        const titleEl = document.createElement('h4');
+        titleEl.textContent = data.title;
+        popupContent.appendChild(titleEl);
+
+        const descEl = document.createElement('p');
+        descEl.textContent = data.description || '';
+        popupContent.appendChild(descEl);
+
+        if (data.photo) {
+          const img = document.createElement('img');
+          img.src = data.photo;
+          img.alt = `Фото: ${data.title}`;
+          img.className = 'marker-photo';
+          popupContent.appendChild(img);
+        }
+
+        const coordsEl = document.createElement('small');
+        coordsEl.textContent = `Координаты: ${data.lat.toFixed(5)}, ${data.lng.toFixed(5)}`;
+        popupContent.appendChild(coordsEl);
+
+        const travelTypeEl = document.createElement('p');
+        travelTypeEl.textContent = data.travelType === 'been' ? 'Был там' : 'Планирую';
+        travelTypeEl.style.fontWeight = 'bold';
+        popupContent.appendChild(travelTypeEl);
+
+        const editBtn = document.createElement('button');
+        editBtn.textContent = 'Редактировать';
+        editBtn.style.marginTop = '8px';
+        editBtn.style.padding = '6px 10px';
+        editBtn.style.cursor = 'pointer';
+        editBtn.style.backgroundColor = '#4caf50';
+        editBtn.style.color = '#fff';
+        editBtn.style.border = 'none';
+        editBtn.style.borderRadius = '4px';
+
+        editBtn.onclick = () => {
+          buildPopupContent(true);
+          marker.openPopup();
+        };
+
+        popupContent.appendChild(editBtn);
+      } else {
+        const form = document.createElement('form');
+        form.className = 'marker-form';
+
+        form.innerHTML = `
+          <label for="marker-title">Название:</label>
+          <input type="text" id="marker-title" name="title" required value="${data.title}" />
+          <label for="marker-description">Описание:</label>
+          <textarea id="marker-description" name="description" rows="3">${data.description || ''}</textarea>
+          <label for="marker-photo">Фото:</label>
+          <input type="file" id="marker-photo" name="photo" accept="image/*" />
+          ${data.photo ? `<img src="${data.photo}" alt="Фото" class="marker-photo" style="margin-top:4px; max-height: 100px;"/>` : ''}
+          <label for="marker-color">Цвет флажка:</label>
+          <input type="color" id="marker-color" name="color" value="${data.color}" />
+          <label for="marker-travelType">Тип путешествия:</label>
+          <select id="marker-travelType" name="travelType">
+            <option value="been" ${data.travelType === 'been' ? 'selected' : ''}>Был там</option>
+            <option value="planned" ${data.travelType === 'planned' ? 'selected' : ''}>Планирую</option>
+          </select>
+          <button type="submit">Сохранить</button>
+        `;
+
+        const photoInput = form.querySelector('#marker-photo');
+        photoInput.addEventListener('change', e => {
+          const file = e.target.files[0];
+          if (!file) return;
+          if (!file.type.startsWith('image/')) {
+            alert('Выберите изображение');
+            return;
+          }
+          const reader = new FileReader();
+          reader.onload = () => {
+            data.photo = reader.result;
+            saveMarkerData();
+            buildPopupContent(true);
+            marker.openPopup();
+          };
+          reader.readAsDataURL(file);
+        });
+
+        form.addEventListener('submit', e => {
+          e.preventDefault();
+          const f = e.target;
+          const newTitle = f.title.value.trim();
+          if (!newTitle) {
+            alert('Введите название');
+            return;
+          }
+          data.title = newTitle;
+          data.description = f.description.value.trim();
+          data.color = f.color.value;
+          data.travelType = f.travelType.value;
+          saveMarkerData();
+          updateMarkerIcon(marker, data);
+          buildPopupContent(false);
+          marker.openPopup();
+        });
+
+        popupContent.appendChild(form);
+      }
+    }
+
+    buildPopupContent(false);
+
+    marker.bindPopup(popupContent);
+
+    // При перетаскивании обновлять координаты
+    marker.on('dragend', () => {
+      const pos = marker.getLatLng();
+      data.lat = pos.lat;
+      data.lng = pos.lng;
+      saveMarkerData();
+    });
+
+    return marker;
+  }
+
+  function updateMarkerIcon(marker, data) {
+    const icon = L.divIcon({
+      className: '',
+      html: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="48" viewBox="0 0 32 48" fill="none">
+        <path fill="${data.color}" stroke="#222" stroke-width="2" d="M16 0C7 0 0 10 0 18c0 14 16 30 16 30s16-16 16-30c0-8-7-18-16-18z"/>
+        <circle cx="16" cy="18" r="6" fill="${data.travelType === 'been' ? '#000' : '#fff'}" stroke="#222" stroke-width="2"/>
+      </svg>`,
+      iconSize: [32, 48],
+      iconAnchor: [16, 48],
+      popupAnchor: [0, -48],
+      className: ''
+    });
+    marker.setIcon(icon);
+  }
+
+  function saveMarkerData() {
+    localStorage.setItem('tms_markers', JSON.stringify(markersData));
+  }
+
+  function renderMarkers() {
+    leafletMarkers.forEach(m => map.removeLayer(m));
+    leafletMarkers.clear();
+
+    markersData.forEach(data => {
+      const marker = createLeafletMarker(data);
+      marker.addTo(map);
+      leafletMarkers.set(data.id, marker);
+    });
+  }
+
+  // --- Автодополнение для input ---
+  // Принимает input элемент и div для подсказок, возвращает функцию для установки обработчиков
+  function setupAutocomplete(input, suggestionsDiv) {
+    let timeout = null;
+    input.addEventListener('input', () => {
+      clearTimeout(timeout);
+      const val = input.value.trim();
+      if (val.length < 2) {
+        suggestionsDiv.innerHTML = '';
+        return;
+      }
+      timeout = setTimeout(() => {
+        fetch(`https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&q=${encodeURIComponent(val)}`)
+          .then(res => res.json())
+          .then(data => {
+            suggestionsDiv.innerHTML = '';
+            if (data.length === 0) {
+              const nores = document.createElement('div');
+              nores.textContent = 'Нет результатов';
+              nores.className = 'autocomplete-suggestion';
+              suggestionsDiv.appendChild(nores);
+              return;
+            }
+            data.forEach(place => {
+              const item = document.createElement('div');
+              item.className = 'autocomplete-suggestion';
+              let displayName = place.display_name;
+              // Укоротим название если слишком длинное
+              if (displayName.length > 50) {
+                displayName = displayName.slice(0, 50) + '...';
+              }
+              item.textContent = displayName;
+              item.dataset.lat = place.lat;
+              item.dataset.lon = place.lon;
+              item.dataset.name = place.display_name;
+              item.addEventListener('click', () => {
+                input.value = place.display_name;
+                // Сохраняем координаты в input dataset
+                input.dataset.lat = place.lat;
+                input.dataset.lon = place.lon;
+                suggestionsDiv.innerHTML = '';
+              });
+              suggestionsDiv.appendChild(item);
+            });
+          });
+      }, 300);
+    });
+
+    // Закрыть подсказки при клике вне
+    document.addEventListener('click', (e) => {
+      if (!suggestionsDiv.contains(e.target) && e.target !== input) {
+        suggestionsDiv.innerHTML = '';
+      }
+    });
+  }
+
+  // --- Путешествия ---
+  function initTrips() {
+    const form = document.getElementById('trip-form');
+    const tripList = document.getElementById('trip-list');
+
+    // Установим автодополнение
+    setupAutocomplete(document.getElementById('trip-start'), document.getElementById('autocomplete-start'));
+    setupAutocomplete(document.getElementById('trip-end'), document.getElementById('autocomplete-end'));
+    // Для промежуточных городов — немного сложнее, так как несколько через запятую
+    // Для простоты сделаем автодополнение только для последнего города после запятой
+    const stopsInput = document.getElementById('trip-stops');
+    const stopsSuggestions = document.getElementById('autocomplete-stops');
+    stopsInput.addEventListener('input', () => {
+      const val = stopsInput.value;
+      const parts = val.split(',');
+      const lastPart = parts[parts.length - 1].trim();
+      stopsSuggestions.innerHTML = '';
+      if (lastPart.length < 2) return;
+      clearTimeout(stopsInput._timeout);
+      stopsInput._timeout = setTimeout(() => {
+        fetch(`https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&q=${encodeURIComponent(lastPart)}`)
+          .then(res => res.json())
+          .then(data => {
+            stopsSuggestions.innerHTML = '';
+            if (data.length === 0) {
+              const nores = document.createElement('div');
+              nores.textContent = 'Нет результатов';
+              nores.className = 'autocomplete-suggestion';
+              stopsSuggestions.appendChild(nores);
+              return;
+            }
+            data.forEach(place => {
+              const item = document.createElement('div');
+              item.className = 'autocomplete-suggestion';
+              let displayName = place.display_name;
+              if (displayName.length > 50) {
+                displayName = displayName.slice(0, 50) + '...';
+              }
+              item.textContent = displayName;
+              item.dataset.lat = place.lat;
+              item.dataset.lon = place.lon;
+              item.dataset.name = place.display_name;
+              item.addEventListener('click', () => {
+                parts[parts.length - 1] = place.display_name;
+                stopsInput.value = parts.join(', ') + (stopsInput.value.endsWith(',') ? ',' : '');
+                stopsInput.dataset.lat = stopsInput.dataset.lat || '{}';
+                stopsInput.dataset.lat = stopsInput.dataset.lat;
+                stopsSuggestions.innerHTML = '';
+              });
+              stopsSuggestions.appendChild(item);
+            });
+          });
+      }, 300);
+    });
+
+    // Рендер списка путешествий
+    function renderTrips() {
+      tripList.innerHTML = '';
+      if (trips.length === 0) {
+        tripList.innerHTML = '<li>Путешествия отсутствуют</li>';
+        return;
+      }
+      trips.forEach(t => {
+        const li = document.createElement('li');
+        li.textContent = `${t.start.name} → ${t.stops.length ? t.stops.map(s => s.name).join(' → ') + ' → ' : ''}${t.end.name}`;
+        li.style.color = t.color;
+        const delBtn = document.createElement('button');
+        delBtn.textContent = 'Удалить';
+        delBtn.onclick = (e) => {
+          e.stopPropagation();
+          if (!confirm('Удалить это путешествие?')) return;
+          removeTrip(t.id);
+        };
+        li.appendChild(delBtn);
+        li.onclick = () => {
+          showTripOnMap(t);
+        };
+        tripList.appendChild(li);
+      });
+    }
+
+    function removeTrip(id) {
+      trips = trips.filter(t => t.id !== id);
+      saveTrips();
+      renderTrips();
+      removeRouteFromMap(id);
+      // Удалим маркеры этого путешествия с карты
+      removeMarkersByTrip(id);
+    }
+
+    function saveTrips() {
+      localStorage.setItem('tms_trips', JSON.stringify(trips));
+    }
+
+    // Удаление маршрута с карты
+    function removeRouteFromMap(id) {
+      const line = leafletRoutes.get(id);
+      if (line) {
+        map.removeLayer(line);
+        leafletRoutes.delete(id);
+      }
+    }
+
+    // Удалить маркеры, связанные с путешествием (по id путешествия в data.tripId)
+    function removeMarkersByTrip(tripId) {
+      // Удалим из markersData все маркеры с tripId
+      markersData = markersData.filter(m => m.tripId !== tripId);
+      saveMarkerData();
+      renderMarkers();
+    }
+
+    // Показать маршрут на карте с линией и маркерами
+    function showTripOnMap(trip) {
+      removeAllRoutes();
+      removeMarkersByTrip(trip.id);
+
+      const points = [];
+      // Добавляем в points: start, stops, end
+      points.push([trip.start.latlng.lat, trip.start.latlng.lng]);
+      trip.stops.forEach(s => points.push([s.latlng.lat, s.latlng.lng]));
+      points.push([trip.end.latlng.lat, trip.end.latlng.lng]);
+
+      // Добавляем линию маршрута
+      const polyline = L.polyline(points, { color: trip.color || '#4caf50', weight: 5 }).addTo(map);
+      leafletRoutes.set(trip.id, polyline);
+
+      // Добавим маркеры по маршруту (цвет - цвет маршрута, travelType "been")
+      function addMarkerForPlace(place, title) {
+        const markerData = {
+          id: 'm' + Date.now() + Math.random(),
+          lat: place.latlng.lat,
+          lng: place.latlng.lng,
+          title,
+          description: '',
+          photo: '',
+          color: trip.color,
+          travelType: 'been',
+          tripId: trip.id
+        };
+        markersData.push(markerData);
+        const marker = createLeafletMarker(markerData);
+        marker.addTo(map);
+        leafletMarkers.set(markerData.id, marker);
+      }
+
+      addMarkerForPlace(trip.start, `Начало: ${trip.start.name}`);
+      trip.stops.forEach(s => addMarkerForPlace(s, s.name));
+      addMarkerForPlace(trip.end, `Конец: ${trip.end.name}`);
+
+      saveMarkerData();
+      saveTrips();
+
+      map.fitBounds(polyline.getBounds());
+    }
+
+    function removeAllRoutes() {
+      leafletRoutes.forEach(line => {
+        map.removeLayer(line);
+      });
+      leafletRoutes.clear();
+    }
+
+    // Помощь: геокодировать название места, возвращает Promise с объектом {name, latlng}
+    function geocodePlace(name) {
+      return fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(name)}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.length === 0) return null;
+          return {
+            name: data[0].display_name,
+            latlng: L.latLng(data[0].lat, data[0].lon)
+          };
+        });
+    }
+
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      const startName = form['trip-start'].value.trim();
+      const endName = form['trip-end'].value.trim();
+      const stopsRaw = form['trip-stops'].value.trim();
+      const color = form['trip-color'].value;
+
+      if (!startName || !endName) {
+        alert('Введите начальную и конечную точки');
+        return;
+      }
+
+      // Геокодим start и end
+      const start = await geocodePlace(startName);
+      if (!start) {
+        alert('Не удалось найти начальную точку: ' + startName);
+        return;
+      }
+      const end = await geocodePlace(endName);
+      if (!end) {
+        alert('Не удалось найти конечную точку: ' + endName);
+        return;
+      }
+
+      // Геокодим промежуточные города
+      const stopsNames = stopsRaw ? stopsRaw.split(',').map(s => s.trim()).filter(Boolean) : [];
+      const stops = [];
+      for (const sName of stopsNames) {
+        const sPlace = await geocodePlace(sName);
+        if (!sPlace) {
+          alert('Не удалось найти промежуточный город: ' + sName);
+          return;
+        }
+        stops.push(sPlace);
+      }
+
+      const newTrip = {
+        id: 't' + Date.now(),
+        start,
+        end,
+        stops,
+        color
+      };
+
+      trips.push(newTrip);
+
+      showTripOnMap(newTrip);
+      renderTrips();
+
+      form.reset();
+      form['trip-color'].value = '#4caf50';
+    });
+
+    renderTrips();
+  }
+
+  // --- Вкладка Друзья ---
+  function initFriends() {
+    const input = document.getElementById('friend-search-input');
+    const btn = document.getElementById('friend-search-btn');
+    const list = document.getElementById('friend-list');
+
+    function renderFriendList() {
+      list.innerHTML = '';
+      if (friends.length === 0) {
+        list.innerHTML = '<li>Список друзей пуст</li>';
+        return;
+      }
+      friends.forEach(f => {
+        const li = document.createElement('li');
+        li.textContent = `${f.name || 'Без имени'} (${f.email || 'нет email'})`;
+        const btnInvite = document.createElement('button');
+        btnInvite.textContent = 'Пригласить';
+        btnInvite.onclick = () => {
+          // Для упрощения - показываем ссылку приглашения
+          alert(`Приглашение: ${f.inviteLink || 'ссылка не установлена'}`);
+        };
+        li.appendChild(btnInvite);
+        list.appendChild(li);
+      });
+    }
+
+    btn.addEventListener('click', () => {
+      const val = input.value.trim().toLowerCase();
+      if (!val) {
+        alert('Введите имя или email для поиска');
+        return;
+      }
+      // Поиск в существующих друзьях - имитация
+      const found = friends.filter(f => (f.name && f.name.toLowerCase().includes(val)) || (f.email && f.email.toLowerCase().includes(val)));
+      if (found.length === 0) {
+        alert('Друзья не найдены. Но ссылку для приглашения можно отправить отдельно.');
+      } else {
+        alert('Найдено друзей: ' + found.length);
+      }
+      renderFriendList();
+    });
+
+    renderFriendList();
+  }
+
+  // --- Переключение вкладок ---
+  function initTabs() {
+    const tabs = ['profile', 'friends', 'trips'];
+    const buttons = tabs.map(id => document.getElementById('btn-' + id));
+    const contents = tabs.map(id => document.getElementById(id));
+
+    buttons.forEach((btn, i) => {
+      btn.addEventListener('click', () => {
+        currentTab = tabs[i];
+        buttons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        contents.forEach(c => c.classList.remove('active'));
+        contents[i].classList.add('active');
+
+        buttons.forEach((b, idx) => {
+          b.setAttribute('aria-selected', idx === i ? 'true' : 'false');
+        });
+      });
+    });
+  }
+
+  // --- Инициализация приложения ---
+  function init() {
+    loadFromStorage();
+    initMap();
+    initProfile();
+    initTrips();
+    initFriends();
+    initTabs();
+    renderMarkers();
+  }
+
+  init();
+
+})();
+</script>
+</body>
+</html>
