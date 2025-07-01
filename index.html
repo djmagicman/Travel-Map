@@ -12,19 +12,37 @@
 />
 
 <style>
-  body, html {
-    margin: 0; padding: 0; height: 100%;
+  html, body {
+    margin: 0; 
+    padding: 0; 
+    height: 100%; 
+    width: 100%;
     font-family: Arial, sans-serif;
   }
-  #map { height: 60vh; }
+  #map {
+    position: absolute;
+    top: 0; bottom: 0; left: 0; right: 0;
+    height: 100%;
+    width: 100%;
+    z-index: 0;
+  }
   #controls {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: rgba(255 255 255 / 0.9);
     padding: 10px;
-    background: #f0f0f0;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.3);
+    max-width: 260px;
+    z-index: 1000;
   }
   input, button {
     font-size: 1rem;
     padding: 6px;
     margin: 4px 0;
+    width: 100%;
+    box-sizing: border-box;
   }
   #userInfo {
     margin-bottom: 10px;
@@ -35,8 +53,10 @@
     overflow-y: auto;
     background: white;
     position: absolute;
-    z-index: 1000;
-    width: 220px;
+    z-index: 1001;
+    width: 100%;
+    left: 0;
+    box-sizing: border-box;
   }
   #suggestions div {
     padding: 6px;
@@ -53,16 +73,14 @@
   <div id="userInfo"></div>
   <button id="loginBtn">Войти через Google</button>
   <button id="logoutBtn" style="display:none;">Выйти</button>
-  <br />
   
   <label for="cityInput">Введите город:</label><br />
-  <input type="text" id="cityInput" autocomplete="off" style="width: 220px;" />
+  <input type="text" id="cityInput" autocomplete="off" />
   <div id="suggestions"></div>
 
   <label for="colorInput">Цвет метки:</label><br />
   <input type="color" id="colorInput" value="#ff0000" />
 
-  <br />
   <button id="addBtn">Добавить метку</button>
 </div>
 
@@ -90,22 +108,20 @@
     getDocs
   } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
-  // ====== Настройка Firebase: подставь свои данные! ======
   const firebaseConfig = {
     apiKey: "AIzaSyB0c7llONI831LKFmqTIH6393ZD4ZjBOZY",
-  authDomain: "travel-map-f3677.firebaseapp.com",
-  projectId: "travel-map-f3677",
-  storageBucket: "travel-map-f3677.firebasestorage.app",
-  messagingSenderId: "692883514599",
-  appId: "1:692883514599:web:0b7a71587433e67a85ae42",
-  measurementId: "G-M8L8K1DL29"
+    authDomain: "travel-map-f3677.firebaseapp.com",
+    projectId: "travel-map-f3677",
+    storageBucket: "travel-map-f3677.firebasestorage.app",
+    messagingSenderId: "692883514599",
+    appId: "1:692883514599:web:0b7a71587433e67a85ae42",
+    measurementId: "G-M8L8K1DL29"
   };
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db = getFirestore(app);
 
-  // ====== Переменные UI ======
   const loginBtn = document.getElementById("loginBtn");
   const logoutBtn = document.getElementById("logoutBtn");
   const userInfo = document.getElementById("userInfo");
@@ -114,31 +130,27 @@
   const addBtn = document.getElementById("addBtn");
   const suggestionsDiv = document.getElementById("suggestions");
 
-  // ====== Переменные карты ======
-  const map = L.map("map").setView([55.751244, 37.618423], 5); // Москва центр
+  const map = L.map("map").setView([55.751244, 37.618423], 5);
 
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 19,
     attribution: "© OpenStreetMap"
   }).addTo(map);
 
-  let markers = []; // массив текущих меток на карте
+  let markers = [];
   let selectedCity = null;
 
-  // ====== Функция очистки меток ======
   function clearMarkers() {
     markers.forEach(m => map.removeLayer(m));
     markers = [];
   }
 
-  // ====== Автоподсказки городов (используем Nominatim) ======
   async function fetchCities(query) {
     if (!query) return [];
     const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&accept-language=ru&q=${encodeURIComponent(query)}`;
     try {
       const res = await fetch(url);
       const data = await res.json();
-      // Фильтруем только города, населённые пункты
       return data.filter(item => {
         return item.type === "city" || item.type === "town" || item.type === "village";
       });
@@ -169,7 +181,6 @@
     });
   });
 
-  // ====== Вход через Google ======
   const provider = new GoogleAuthProvider();
 
   loginBtn.addEventListener("click", () => {
@@ -194,7 +205,6 @@
     }
   });
 
-  // ====== Сохранение метки в Firestore ======
   async function saveMarker(userId, cityName, lat, lon, color) {
     try {
       await addDoc(collection(db, "markers"), {
@@ -210,7 +220,6 @@
     }
   }
 
-  // ====== Загрузка меток пользователя из Firestore ======
   async function loadUserMarkers(userId) {
     clearMarkers();
     const markersQuery = query(
@@ -231,7 +240,6 @@
     });
   }
 
-  // ====== Добавление метки через кнопку ======
   addBtn.addEventListener("click", async () => {
     const color = colorInput.value;
 
