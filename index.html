@@ -105,7 +105,10 @@
     addDoc,
     query,
     where,
-    getDocs
+    getDocs,
+    updateDoc,
+    deleteDoc,
+    doc
   } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
   const firebaseConfig = {
@@ -137,11 +140,12 @@
     attribution: "© OpenStreetMap"
   }).addTo(map);
 
+  // Храним метки как объекты { idDoc, marker, data }
   let markers = [];
   let selectedCity = null;
 
   function clearMarkers() {
-    markers.forEach(m => map.removeLayer(m));
+    markers.forEach(({marker}) => map.removeLayer(marker));
     markers = [];
   }
 
@@ -207,7 +211,7 @@
 
   async function saveMarker(userId, cityName, lat, lon, color) {
     try {
-      await addDoc(collection(db, "markers"), {
+      const docRef = await addDoc(collection(db, "markers"), {
         userId,
         cityName,
         lat,
@@ -215,8 +219,27 @@
         color,
         createdAt: new Date()
       });
+      return docRef.id;
     } catch (e) {
       alert("Ошибка при сохранении метки: " + e.message);
+    }
+  }
+
+  async function updateMarkerColor(docId, color) {
+    try {
+      const docRef = doc(db, "markers", docId);
+      await updateDoc(docRef, { color });
+    } catch(e) {
+      alert("Ошибка при обновлении метки: " + e.message);
+    }
+  }
+
+  async function deleteMarker(docId) {
+    try {
+      const docRef = doc(db, "markers", docId);
+      await deleteDoc(docRef);
+    } catch(e) {
+      alert("Ошибка при удалении метки: " + e.message);
     }
   }
 
@@ -228,16 +251,77 @@
     );
     const querySnapshot = await getDocs(markersQuery);
 
-    querySnapshot.forEach(doc => {
-      const data = doc.data();
+    querySnapshot.forEach(docSnap => {
+      const data = docSnap.data();
+      const idDoc = docSnap.id;
+
       const marker = L.circleMarker([data.lat, data.lon], {
         color: data.color,
         radius: 8,
         fillOpacity: 0.7
       }).addTo(map);
-      marker.bindPopup(`<b>${data.cityName}</b>`);
-      markers.push(marker);
+
+      // Создаем popup с кнопками "Изменить цвет" и "Удалить"
+      marker.bindPopup(createPopupContent(data.cityName, data.color, idDoc, marker));
+
+      markers.push({ idDoc, marker, data });
     });
+  }
+
+  // Функция создает DOM-элементы для popup
+  function createPopupContent(cityName, currentColor, idDoc, markerInstance) {
+    const container = document.createElement("div");
+
+    const title = document.createElement("b");
+    title.textContent = cityName;
+    container.appendChild(title);
+
+    container.appendChild(document.createElement("br"));
+
+    // Кнопка изменить цвет
+    const editBtn = document.createElement("button");
+    editBtn.textContent = "Изменить цвет";
+    editBtn.style.marginTop = "8px";
+    container.appendChild(editBtn);
+
+    // Цветовой инпут (скрыт по умолчанию)
+    const colorPicker = document.createElement("input");
+    colorPicker.type = "color";
+    colorPicker.value = currentColor;
+    colorPicker.style.display = "none";
+    colorPicker.style.marginTop = "8px";
+    container.appendChild(colorPicker);
+
+    // Кнопка удалить метку
+    const deleteBtn = document.createElement("button");
+    deleteBtn.textContent = "Удалить метку";
+    deleteBtn.style.marginTop = "8px";
+    deleteBtn.style.backgroundColor = "#e74c3c";
+    deleteBtn.style.color = "white";
+    container.appendChild(deleteBtn);
+
+    // Обработчики кнопок
+    editBtn.onclick = () => {
+      colorPicker.style.display = (colorPicker.style.display === "none") ? "block" : "none";
+    };
+
+    colorPicker.onchange = async () => {
+      const newColor = colorPicker.value;
+      await updateMarkerColor(idDoc, newColor);
+      markerInstance.setStyle({ color: newColor });
+      colorPicker.style.display = "none";
+    };
+
+    deleteBtn.onclick = async () => {
+      if (confirm("Вы уверены, что хотите удалить эту метку?")) {
+        await deleteMarker(idDoc);
+        map.removeLayer(markerInstance);
+        // Удаляем из массива markers
+        markers = markers.filter(m => m.idDoc !== idDoc);
+      }
+    };
+
+    return container;
   }
 
   addBtn.addEventListener("click", async () => {
@@ -254,21 +338,30 @@
       return;
     }
 
-    const marker = L.circleMarker([selectedCity.lat, selectedCity.lon], {
-      color: color,
-      radius: 8,
-      fillOpacity: 0.7
-    }).addTo(map);
-    marker.bindPopup(`<b>${selectedCity.name}</b>`).openPopup();
-    markers.push(marker);
-
-    await saveMarker(
+    // Сохраняем метку в Firestore и получаем ID
+    const docId = await saveMarker(
       user.uid,
       selectedCity.name,
       selectedCity.lat,
       selectedCity.lon,
       color
     );
+
+    // Добавляем метку на карту с popup
+    const marker = L.circleMarker([selectedCity.lat, selectedCity.lon], {
+      color: color,
+      radius: 8,
+      fillOpacity: 0.7
+    }).addTo(map);
+
+    marker.bindPopup(createPopupContent(selectedCity.name, color, docId, marker)).openPopup();
+
+    markers.push({ idDoc: docId, marker, data: {
+      cityName: selectedCity.name,
+      lat: selectedCity.lat,
+      lon: selectedCity.lon,
+      color: color
+    }});
 
     map.setView([selectedCity.lat, selectedCity.lon], 10);
 
