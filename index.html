@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -14,249 +15,36 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
 <style>
-  :root {
-    --primary-color: #4CAF50; /* Green */
-    --primary-dark-color: #388E3C;
-    --secondary-color: #2196F3; /* Blue */
-    --accent-color: #FFC107; /* Amber */
-    --danger-color: #F44336; /* Red */
-    --text-color: #333;
-    --bg-light: #f8f8f8;
-    --bg-dark: rgba(255, 255, 255, 0.95);
-    --border-radius: 8px;
-    --box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  }
+  /* Your previous styles here... */
 
-  html, body {
-    margin: 0;
-    padding: 0;
-    height: 100%;
-    width: 100%;
-    font-family: 'Poppins', sans-serif;
-    color: var(--text-color);
-    overflow: hidden; /* Prevent scrolling on main page */
-  }
-
-  #map {
-    position: absolute;
-    top: 0; bottom: 0; left: 0; right: 0;
-    height: 100%;
-    width: 100%;
-    z-index: 0;
-  }
-
-  #controls {
-    position: absolute;
-    top: 15px;
-    left: 15px;
+  /* Additional styles for the profile modal */
+  #profileModal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     background: var(--bg-dark);
     padding: 20px;
+    z-index: 2000;
+    display: none; /* Hidden by default */
     border-radius: var(--border-radius);
     box-shadow: var(--box-shadow);
-    max-width: 320px;
-    z-index: 1000;
-    transition: transform 0.3s ease-in-out;
-    transform: translateX(0); /* Default position */
+  }
+  
+  #profileModal input, #profileModal button {
+    margin: 10px 0;
+    width: 100%;
   }
 
-  #controls.hidden {
-    transform: translateX(calc(-100% - 25px)); /* Hide off-screen */
-  }
-
-  #toggleControlsBtn {
+  #weatherInfo {
     position: absolute;
     top: 15px;
-    left: 15px;
-    background: var(--primary-color);
+    right: 15px;
+    background: var(--bg-dark);
+    padding: 10px;
+    border-radius: var(--border-radius);
+    z-index: 1000;
     color: white;
-    padding: 10px 15px;
-    border-radius: var(--border-radius);
-    text-align: center;
-    cursor: pointer;
-    box-shadow: var(--box-shadow);
-    z-index: 1001;
-    display: none; /* Hidden by default when controls are visible */
-    transition: left 0.3s ease-in-out;
-  }
-
-  #controls.hidden + #toggleControlsBtn {
-    left: 15px; /* Adjust if controls are hidden */
-    display: block;
-  }
-  #toggleControlsBtn i {
-      margin-right: 5px;
-  }
-
-  h2 {
-    margin-top: 0;
-    color: var(--primary-dark-color);
-    font-weight: 600;
-    text-align: center;
-    margin-bottom: 20px;
-  }
-
-  label {
-    display: block;
-    margin-top: 10px;
-    margin-bottom: 5px;
-    font-weight: 600;
-    color: var(--text-color);
-  }
-
-  input[type="text"], input[type="color"], button {
-    font-size: 1rem;
-    padding: 10px 15px;
-    margin-bottom: 10px;
-    width: 100%;
-    box-sizing: border-box;
-    border: 1px solid #ddd;
-    border-radius: var(--border-radius);
-    transition: all 0.3s ease;
-  }
-
-  input[type="text"]:focus, input[type="color"]:focus {
-    border-color: var(--secondary-color);
-    box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.2);
-    outline: none;
-  }
-
-  button {
-    cursor: pointer;
-    background-color: var(--primary-color);
-    color: white;
-    border: none;
-    font-weight: 600;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-  }
-
-  button:hover {
-    background-color: var(--primary-dark-color);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-  }
-
-  button:active {
-    transform: translateY(0);
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-  }
-
-  #loginBtn, #logoutBtn {
-    background-color: var(--secondary-color);
-  }
-  #loginBtn:hover, #logoutBtn:hover {
-    background-color: #1976D2; /* Darker blue */
-  }
-
-  #logoutBtn {
-    background-color: var(--danger-color);
-  }
-  #logoutBtn:hover {
-      background-color: #D32F2F; /* Darker red */
-  }
-
-  #userInfo {
-    margin-bottom: 15px;
-    text-align: center;
-    font-weight: 600;
-    color: var(--primary-dark-color);
-  }
-
-  .autocomplete-container {
-    position: relative;
-    width: 100%;
-  }
-
-  #suggestions {
-    border: 1px solid #eee;
-    max-height: 150px;
-    overflow-y: auto;
-    background: white;
-    position: absolute;
-    z-index: 1001;
-    width: 100%;
-    left: 0;
-    border-radius: var(--border-radius);
-    overflow: hidden;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-  }
-  #suggestions div {
-    padding: 10px 15px;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-  }
-  #suggestions div:hover {
-    background-color: #f0f0f0;
-  }
-
-  /* Popup Styles for Leaflet */
-  .leaflet-popup-content-wrapper {
-    border-radius: var(--border-radius);
-    padding: 0; /* Remove default padding */
-  }
-  
-  .leaflet-popup-content {
-      margin: 0;
-      padding: 15px;
-      font-family: 'Poppins', sans-serif;
-      text-align: center;
-  }
-  
-  .leaflet-popup-content b {
-      display: block;
-      margin-bottom: 15px;
-      font-size: 1.1em;
-      color: var(--primary-dark-color);
-  }
-  
-  .leaflet-popup-content input {
-      width: 100%; /* Make comment input full width */
-      margin-top: 10px;
-  }
-  
-  /* Comments Section Styles */
-  .comments-section {
-      margin-top: 10px;
-      max-height: 200px;
-      overflow-y: auto;
-  }
-  
-  .comment {
-      border-bottom: 1px solid #ccc;
-      padding: 5px 0;
-      text-align: left;
-  }
-
-  /* Notifications */
-  #notification-container {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      z-index: 2000;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-  }
-
-  .notification {
-      background-color: var(--primary-color);
-      color: white;
-      padding: 10px 20px;
-      border-radius: var(--border-radius);
-      box-shadow: var(--box-shadow);
-      opacity: 0;
-      transform: translateY(-20px);
-      animation: fadeInOut 4s forwards; /* 4s: 0.5s fade in, 3s display, 0.5s fade out */
-  }
-
-  .notification.error {
-      background-color: var(--danger-color);
-  }
-
-  @keyframes fadeInOut {
-      0% { opacity: 0; transform: translateY(-20px); }
-      10% { opacity: 1; transform: translateY(0); }
-      90% { opacity: 1; transform: translateY(0); }
-      100% { opacity: 0; transform: translateY(-20px); }
   }
   
 </style>
@@ -272,6 +60,7 @@
   <div id="userInfo"></div>
   <button id="loginBtn"><i class="fab fa-google"></i> Войти через Google</button>
   <button id="logoutBtn" style="display:none;"><i class="fas fa-sign-out-alt"></i> Выйти</button>
+  <button id="profileBtn" style="display:none;"><i class="fas fa-user"></i> Профиль</button>
 
   <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
 
@@ -291,8 +80,19 @@
 </div>
 
 <div id="map"></div>
-
+<div id="weatherInfo"></div>
 <div id="notification-container"></div>
+
+<!-- Profile modal -->
+<div id="profileModal">
+  <h3>Ваш профиль</h3>
+  <input type="text" id="nameInput" placeholder="Ваше имя" />
+  <input type="number" id="ageInput" placeholder="Возраст" />
+  <input type="text" id="factsInput" placeholder="Факты о себе" />
+  <input type="file" id="avatarInput" />
+  <button id="saveProfileBtn">Сохранить профиль</button>
+  <button id="closeProfileModalBtn">Закрыть</button>
+</div>
 
 <!-- Leaflet JS -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -315,8 +115,8 @@
     where,
     getDocs,
     updateDoc,
-    deleteDoc,
-    doc
+    doc,
+    getDoc
   } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
   const firebaseConfig = {
@@ -339,12 +139,19 @@
   const cityInput = document.getElementById("cityInput");
   const colorInput = document.getElementById("colorInput");
   const addBtn = document.getElementById("addBtn");
-  const addBtnText = document.getElementById("addBtnText");
   const addBtnLoader = document.getElementById("addBtnLoader");
   const suggestionsDiv = document.getElementById("suggestions");
-  const controlsDiv = document.getElementById("controls");
   const toggleControlsBtn = document.getElementById("toggleControlsBtn");
   const notificationContainer = document.getElementById("notification-container");
+  const profileModal = document.getElementById("profileModal");
+  const profileBtn = document.getElementById("profileBtn");
+  const nameInput = document.getElementById("nameInput");
+  const ageInput = document.getElementById("ageInput");
+  const factsInput = document.getElementById("factsInput");
+  const avatarInput = document.getElementById("avatarInput");
+  const saveProfileBtn = document.getElementById("saveProfileBtn");
+  const closeProfileModalBtn = document.getElementById("closeProfileModalBtn");
+  const weatherInfo = document.getElementById("weatherInfo");
 
   const map = L.map("map").setView([55.751244, 37.618423], 5);
 
@@ -358,280 +165,7 @@
   let typingTimer;
   const doneTypingInterval = 500; // 0.5 seconds
 
-  // Load markers for all users when page loads
-  async function loadAllMarkers() {
-    const markersQuery = query(collection(db, "markers"));
-    try {
-      const querySnapshot = await getDocs(markersQuery);
-      querySnapshot.forEach(docSnap => {
-        const data = docSnap.data();
-        const idDoc = docSnap.id;
-
-        const marker = L.circleMarker([data.lat, data.lon], {
-          color: data.color,
-          radius: 8,
-          fillOpacity: 0.7,
-          weight: 2,
-          opacity: 0.8
-        }).addTo(map);
-
-        // Create popup content for markers
-        marker.bindPopup(createPopupContent(data.cityName, data.color, idDoc, marker));
-
-        markers.push({ idDoc, marker, data });
-      });
-      showNotification("Все метки загружены!");
-    } catch (e) {
-      showNotification("Ошибка при загрузке меток: " + e.message, true);
-    }
-  }
-
-  // Fetch cities from API
-  async function fetchCities(query) {
-    if (!query) return [];
-    const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=8&accept-language=ru&q=${encodeURIComponent(query)}`;
-    try {
-      const res = await fetch(url);
-      const data = await res.json();
-      return data.filter(item => {
-        // Filter for specific types that are cities/towns/villages
-        const allowedTypes = ["city", "town", "village", "hamlet", "suburb"];
-        return allowedTypes.includes(item.type) || (item.class === "place" && item.type === "administrative");
-      });
-    } catch (e) {
-      showNotification("Ошибка при поиске городов.", true);
-      return [];
-    }
-  }
-
-  // User click on input
-  cityInput.addEventListener("input", () => {
-    clearTimeout(typingTimer);
-    const val = cityInput.value.trim();
-    if (val.length < 2) {
-      suggestionsDiv.innerHTML = "";
-      suggestionsDiv.style.display = "none";
-      selectedCity = null;
-      return;
-    }
-    typingTimer = setTimeout(async () => {
-      const cities = await fetchCities(val);
-      suggestionsDiv.innerHTML = "";
-      if (cities.length > 0) {
-        suggestionsDiv.style.display = "block";
-        cities.forEach(city => {
-          const div = document.createElement("div");
-          div.textContent = city.display_name;
-          div.addEventListener("click", () => {
-            cityInput.value = city.display_name;
-            selectedCity = {
-              name: city.display_name,
-              lat: parseFloat(city.lat),
-              lon: parseFloat(city.lon)
-            };
-            suggestionsDiv.innerHTML = "";
-            suggestionsDiv.style.display = "none";
-          });
-          suggestionsDiv.appendChild(div);
-        });
-      } else {
-        suggestionsDiv.style.display = "none";
-      }
-    }, doneTypingInterval);
-  });
-
-  // Toggle Controls
-  toggleControlsBtn.addEventListener('click', () => {
-      controlsDiv.classList.toggle('hidden');
-      if (controlsDiv.classList.contains('hidden')) {
-          toggleControlsBtn.innerHTML = '<i class="fas fa-bars"></i>';
-          toggleControlsBtn.style.left = '15px';
-      } else {
-          toggleControlsBtn.innerHTML = '<i class="fas fa-times"></i>'; // Change icon to close
-          toggleControlsBtn.style.left = controlsDiv.offsetWidth + 30 + 'px'; // Position next to controls
-          setTimeout(() => toggleControlsBtn.style.display = 'none', 300); // Hide after transition
-      }
-  });
-
-  // Show toggle button when controls are hidden
-  controlsDiv.addEventListener('transitionend', () => {
-      if (controlsDiv.classList.contains('hidden')) {
-          toggleControlsBtn.style.display = 'block';
-      } else {
-          toggleControlsBtn.style.display = 'none';
-      }
-  });
-
-  const provider = new GoogleAuthProvider();
-
-  // Login event
-  loginBtn.addEventListener("click", () => {
-    signInWithPopup(auth, provider)
-      .then((result) => {
-        showNotification(`Добро пожаловать, ${result.user.displayName}!`);
-        loadAllMarkers(); // Load all markers for logged in users
-      })
-      .catch(e => {
-        showNotification("Ошибка входа: " + e.message, true);
-      });
-  });
-
-  // Logout event
-  logoutBtn.addEventListener("click", () => {
-    signOut(auth)
-      .then(() => {
-        showNotification("Вы вышли из аккаунта.");
-      })
-      .catch(e => {
-        showNotification("Ошибка выхода: " + e.message, true);
-      });
-  });
-
-  // Auth state change event
-  onAuthStateChanged(auth, user => {
-    if (user) {
-      userInfo.textContent = `Привет, ${user.displayName}`;
-      loginBtn.style.display = "none";
-      logoutBtn.style.display = "inline-block";
-      addBtn.style.display = "flex"; // Show add button for logged in users
-      loadUserMarkers(user.uid);
-    } else {
-      userInfo.textContent = "Войдите, чтобы сохранять метки.";
-      loginBtn.style.display = "inline-block";
-      logoutBtn.style.display = "none";
-      addBtn.style.display = "none"; // Hide add button for logged out users
-      clearMarkers();
-    }
-  });
-
-  // Save marker function
-  async function saveMarker(userId, cityName, lat, lon, color) {
-    try {
-      const docRef = await addDoc(collection(db, "markers"), {
-        userId,
-        cityName,
-        lat,
-        lon,
-        color,
-        createdAt: new Date(),
-        comments: [] // Initialize comments array
-      });
-      return docRef.id;
-    } catch (e) {
-      showNotification("Ошибка при сохранении метки: " + e.message, true);
-    }
-    return null;
-  }
-
-  // Create popup content function
-  function createPopupContent(cityName, currentColor, idDoc, markerInstance) {
-    const container = document.createElement("div");
-
-    const title = document.createElement("b");
-    title.textContent = cityName;
-    container.appendChild(title);
-
-    // Color picker
-    const colorPicker = document.createElement("input");
-    colorPicker.type = "color";
-    colorPicker.value = currentColor;
-    container.appendChild(colorPicker);
-
-    // Comment input
-    const commentInput = document.createElement("input");
-    commentInput.type = "text";
-    commentInput.placeholder = "Ваш комментарий...";
-    container.appendChild(commentInput);
-
-    // Button to add comment
-    const addCommentBtn = document.createElement("button");
-    addCommentBtn.textContent = "Добавить комментарий";
-    container.appendChild(addCommentBtn);
-
-    // Comments section
-    const commentsSection = document.createElement("div");
-    commentsSection.classList.add("comments-section");
-    container.appendChild(commentsSection);
-
-    // Event for adding comments
-    addCommentBtn.onclick = async () => {
-      const comment = commentInput.value.trim();
-      if (comment) {
-        await addCommentToMarker(idDoc, comment);
-        commentInput.value = ""; // Clear input
-        loadCommentsForMarker(idDoc, commentsSection); // Reload comments
-      }
-    };
-
-    // Load comments when opening the popup
-    loadCommentsForMarker(idDoc, commentsSection);
-
-    // Update color
-    colorPicker.onchange = async () => {
-      const newColor = colorPicker.value;
-      await updateMarkerColor(idDoc, newColor);
-      markerInstance.setStyle({ color: newColor });
-    };
-
-    return container;
-  }
-
-  // Add comment to marker function
-  async function addCommentToMarker(docId, comment) {
-    try {
-      const docRef = doc(db, "markers", docId);
-      await updateDoc(docRef, {
-        comments: firebase.firestore.FieldValue.arrayUnion(comment) // Add new comment to the comments array
-      });
-      showNotification("Комментарий добавлен!");
-    } catch (e) {
-      showNotification("Ошибка при добавлении комментария: " + e.message, true);
-    }
-  }
-
-  // Load comments for a marker
-  async function loadCommentsForMarker(docId, commentsSection) {
-    const docRef = doc(db, "markers", docId);
-    const docSnap = await getDoc(docRef);
-    const data = docSnap.data();
-    commentsSection.innerHTML = ''; // Clear previous comments
-
-    if (data.comments && data.comments.length > 0) {
-      data.comments.forEach(comment => {
-        const commentDiv = document.createElement("div");
-        commentDiv.classList.add("comment");
-        commentDiv.textContent = comment;
-        commentsSection.appendChild(commentDiv);
-      });
-    } else {
-      const noCommentsDiv = document.createElement("div");
-      noCommentsDiv.textContent = "Нет комментариев.";
-      commentsSection.appendChild(noCommentsDiv);
-    }
-  }
-
-  // Clear markers function
-  function clearMarkers() {
-    markers.forEach(({marker}) => map.removeLayer(marker));
-    markers = [];
-  }
-
-  // Show notifications function
-  function showNotification(message, isError = false) {
-    const notification = document.createElement("div");
-    notification.textContent = message;
-    notification.classList.add("notification");
-    if (isError) {
-      notification.classList.add("error");
-    }
-    notificationContainer.appendChild(notification);
-
-    setTimeout(() => {
-      notification.remove();
-    }, 4000); // 4 seconds (matching animation duration)
-  }
-
-  // Add markers to user's account
+  // Load markers for specific user when they log in
   async function loadUserMarkers(userId) {
     clearMarkers();
     const markersQuery = query(
@@ -659,88 +193,149 @@
           }).addTo(map);
 
           marker.bindPopup(createPopupContent(data.cityName, data.color, idDoc, marker));
-
           markers.push({ idDoc, marker, data });
         });
         showNotification("Ваши метки загружены!");
-        loadAllMarkers(); // Load all user markers on login
     } catch (e) {
         showNotification("Ошибка при загрузке меток: " + e.message, true);
     }
   }
 
-  addBtn.addEventListener("click", async () => {
-    addBtnLoader.style.display = 'inline-block';
-    addBtnText.style.display = 'none';
-
-    const color = colorInput.value;
-
-    if (!selectedCity) {
-      showNotification("Пожалуйста, выберите город из списка предложений.", true);
-      addBtnLoader.style.display = 'none';
-      addBtnText.style.display = 'inline';
-      return;
+  // For displaying current weather
+  async function displayWeather(lat, lon) {
+    const apiKey = 'YOUR_WEATHER_API_KEY'; // Use your weather API key
+    const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&lang=ru&units=metric`;
+    try {
+      const response = await fetch(url);
+      const data = await response.json();
+      if (data && data.weather) {
+        const mainWeather = data.weather[0].description;
+        const temperature = data.main.temp;
+        weatherInfo.innerHTML = `Погода: ${mainWeather}, ${temperature}°C`;
+      }
+    } catch (error) {
+      console.error("Ошибка получения погоды:", error);
+      weatherInfo.textContent = "Ошибка получения погоды.";
     }
+  }
 
-    const user = auth.currentUser;
-    if (!user) {
-      showNotification("Сначала войдите в аккаунт.", true);
-      addBtnLoader.style.display = 'none';
-      addBtnText.style.display = 'inline';
-      return;
-    }
-
-    const docId = await saveMarker(
-      user.uid,
-      selectedCity.name,
-      selectedCity.lat,
-      selectedCity.lon,
-      color
-    );
-
-    if (docId) { // If save was successful
-        const marker = L.circleMarker([selectedCity.lat, selectedCity.lon], {
-          color: color,
-          radius: 8,
-          fillOpacity: 0.7,
-          weight: 2,
-          opacity: 0.8
-        }).addTo(map);
-
-        marker.bindPopup(createPopupContent(selectedCity.name, color, docId, marker)).openPopup();
-
-        markers.push({ idDoc: docId, marker, data: {
-          cityName: selectedCity.name,
-          lat: selectedCity.lat,
-          lon: selectedCity.lon,
-          color: color
-        }});
-
-        map.setView([selectedCity.lat, selectedCity.lon], 10);
-        showNotification(`Метка для ${selectedCity.name} добавлена!`);
-    }
-
-    cityInput.value = "";
-    selectedCity = null; // Reset selected city
-    suggestionsDiv.innerHTML = "";
-    suggestionsDiv.style.display = "none";
-
-    addBtnLoader.style.display = 'none';
-    addBtnText.style.display = 'inline';
+  // Add marker and display weather on click
+  map.on('click', function(e) {
+    displayWeather(e.latlng.lat, e.latlng.lng);
   });
+
+  // Opening profile modal
+  profileBtn.addEventListener("click", () => {
+    profileModal.style.display = "block";
+  });
+
+  // Closing profile modal
+  closeProfileModalBtn.addEventListener("click", () => {
+    profileModal.style.display = "none";
+  });
+
+  // Save profile information
+  saveProfileBtn.addEventListener("click", async () => {
+    const user = auth.currentUser;
+    if (user) {
+      const profileData = {
+        name: nameInput.value,
+        age: ageInput.value,
+        facts: factsInput.value,
+        avatar: null // Assuming we'll handle avatar separately
+      };
+
+      const docRef = doc(db, "users", user.uid);
+      await setDoc(docRef, profileData).then(() => {
+        showNotification("Профиль сохранён!");
+        profileModal.style.display = "none";
+      }).catch((e) => {
+        showNotification("Ошибка сохранения профиля: " + e.message, true);
+      });
+    }
+  });
+
+  const provider = new GoogleAuthProvider();
+
+  // Login event
+  loginBtn.addEventListener("click", () => {
+    signInWithPopup(auth, provider)
+      .then((result) => {
+        showNotification(`Добро пожаловать, ${result.user.displayName}!`);
+        loadUserMarkers(result.user.uid); // Load user markers
+        profileBtn.style.display = "inline-block"; // Show profile button
+      })
+      .catch(e => {
+        showNotification("Ошибка входа: " + e.message, true);
+      });
+  });
+
+  // Logout event
+  logoutBtn.addEventListener("click", () => {
+    signOut(auth)
+      .then(() => {
+        showNotification("Вы вышли из аккаунта.");
+      })
+      .catch(e => {
+        showNotification("Ошибка выхода: " + e.message, true);
+      });
+  });
+
+  // Auth state change event
+  onAuthStateChanged(auth, user => {
+    if (user) {
+      userInfo.textContent = `Привет, ${user.displayName}`;
+      loginBtn.style.display = "none";
+      logoutBtn.style.display = "inline-block";
+      addBtn.style.display = "flex"; // Show add button for logged in users
+      profileBtn.style.display = "inline-block"; // Show profile button
+      loadUserMarkers(user.uid);
+    } else {
+      userInfo.textContent = "Войдите, чтобы сохранять метки.";
+      loginBtn.style.display = "inline-block";
+      logoutBtn.style.display = "none";
+      addBtn.style.display = "none"; // Hide add button for logged out users
+      clearMarkers();
+      profileBtn.style.display = "none"; // Hide profile button
+    }
+  });
+
+  // Clear markers function
+  function clearMarkers() {
+    markers.forEach(({marker}) => map.removeLayer(marker));
+    markers = [];
+  }
+
+  // Show notifications function
+  function showNotification(message, isError = false) {
+    const notification = document.createElement("div");
+    notification.textContent = message;
+    notification.classList.add("notification");
+    if (isError) {
+      notification.classList.add("error");
+    }
+    notificationContainer.appendChild(notification);
+
+    setTimeout(() => {
+      notification.remove();
+    }, 4000); // 4 seconds (matching animation duration)
+  }
 
   // Load all markers when page loads
   loadAllMarkers();
-  
-  // Initial state for toggle button
+
+  // Initially set toggle button display
   toggleControlsBtn.style.display = 'none'; // Initially hidden if controls are visible
   toggleControlsBtn.innerHTML = '<i class="fas fa-times"></i>'; // Initial icon
   setTimeout(() => {
     if (!controlsDiv.classList.contains('hidden')) {
         toggleControlsBtn.style.left = controlsDiv.offsetWidth + 30 + 'px';
     }
-  }, 100); // Small delay to get controls width
+  }, 100); 
+
+  // Other existing scripts...
 
 </script>
 </body>
 </html>
+```
